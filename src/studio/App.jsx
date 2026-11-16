@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { MonitorPlay, SlidersHorizontal, Layers } from 'lucide-react';
 import PatternGrid from './components/PatternGrid';
-import SetupDrawer from './components/SetupDrawer';
+import SetupWorkspace from './components/SetupWorkspace';
 import RemoteBar from './components/RemoteBar';
 import { getPatternById } from '../shared/patterns';
 import {
@@ -115,13 +115,14 @@ export default function App() {
         />
       </main>
 
-      {/* Pre-Event Setup Drawer */}
-      <SetupDrawer
+      {/* Pre-Event Setup & Live 3D Demo Workspace */}
+      <SetupWorkspace
         open={drawerOpen}
         config={config}
         onChange={updateConfig}
         onClose={() => setDrawerOpen(false)}
         onLaunchStage={handleLaunchStage}
+        onRemoteCommand={handleRemoteCommand}
       />
 
       {/* Floating Remote Bar for Dual-Screen Stage Control */}
