@@ -15,6 +15,8 @@ export default function StageApp() {
     customHandImageUrl: null,
     customBgVideoUrl: null,
     customActivationVideoUrl: null,
+    customBgAudioUrl: null,
+    customFanfareAudioUrl: null,
   });
   const [phase, setPhase] = useState('standby'); // 'standby' | 'charging' | 'celebration'
   const [progress, setProgress] = useState(0);
@@ -27,13 +29,56 @@ export default function StageApp() {
   const manualLockedRef = useRef(false);
   const syncRef = useRef(null);
 
-  // Sync audio engine with config
+  // Sync audio engine with config & custom audio media
   useEffect(() => {
     ceremonyAudio.configure({
       volume: config.masterVolume,
       enabled: config.audioEnabled,
+      soundPreset: config.soundPreset,
+      touchSoundEnabled: config.touchSoundEnabled,
+      touchVolume: config.touchVolume,
+      countdownSoundEnabled: config.countdownSoundEnabled,
+      countdownVolume: config.countdownVolume,
+      fanfareSoundEnabled: config.fanfareSoundEnabled,
+      fanfareVolume: config.fanfareVolume,
+      bgAudioEnabled: config.bgAudioEnabled,
+      bgAudioVolume: config.bgAudioVolume,
+      customBgAudioUrl: mediaUrls.customBgAudioUrl,
+      customFanfareAudioUrl: mediaUrls.customFanfareAudioUrl,
     });
-  }, [config.masterVolume, config.audioEnabled]);
+  }, [
+    config.masterVolume,
+    config.audioEnabled,
+    config.soundPreset,
+    config.touchSoundEnabled,
+    config.touchVolume,
+    config.countdownSoundEnabled,
+    config.countdownVolume,
+    config.fanfareSoundEnabled,
+    config.fanfareVolume,
+    config.bgAudioEnabled,
+    config.bgAudioVolume,
+    mediaUrls.customBgAudioUrl,
+    mediaUrls.customFanfareAudioUrl,
+  ]);
+
+  // Sync background music with standby phase
+  useEffect(() => {
+    const shouldPlayBg =
+      phase === 'standby' && config.audioEnabled && config.bgAudioEnabled;
+    ceremonyAudio.syncBgMusic(shouldPlayBg);
+  }, [phase, config.audioEnabled, config.bgAudioEnabled, mediaUrls.customBgAudioUrl]);
+
+  // Unlock background music on first user gesture on Stage if browser blocked autoplay
+  useEffect(() => {
+    const unlock = () => ceremonyAudio.unlockBgMusicIfNeeded();
+    window.addEventListener('pointerdown', unlock, { passive: true });
+    window.addEventListener('keydown', unlock, { passive: true });
+    return () => {
+      window.removeEventListener('pointerdown', unlock);
+      window.removeEventListener('keydown', unlock);
+    };
+  }, []);
 
   const stopChargeTimer = useCallback(() => {
     if (chargeTimerRef.current) {
@@ -92,6 +137,7 @@ export default function StageApp() {
 
   const resetStage = useCallback(() => {
     stopChargeTimer();
+    ceremonyAudio.stopFanfare();
     manualLockedRef.current = false;
     setPhase('standby');
     setProgress(0);

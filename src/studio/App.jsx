@@ -112,7 +112,12 @@ export default function App() {
           </p>
         </div>
 
-        <RemoteBar stagePhase={stagePhase} onCommand={handleRemoteCommand} />
+        <RemoteBar
+          stagePhase={stagePhase}
+          audioEnabled={config.audioEnabled}
+          onToggleAudio={() => updateConfig({ audioEnabled: !config.audioEnabled })}
+          onCommand={handleRemoteCommand}
+        />
 
         <PatternGrid
           selectedId={config.patternId}

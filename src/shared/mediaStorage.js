@@ -52,21 +52,32 @@ export async function deleteMediaBlob(key) {
 
 export async function loadAllCustomMediaUrls() {
   try {
-    const [handBlob, bgVideoBlob, actVideoBlob] = await Promise.all([
-      getMediaBlob('customHandImage'),
-      getMediaBlob('customBgVideo'),
-      getMediaBlob('customActivationVideo'),
-    ]);
+    const [handBlob, bgVideoBlob, actVideoBlob, bgAudioBlob, fanfareAudioBlob] =
+      await Promise.all([
+        getMediaBlob('customHandImage'),
+        getMediaBlob('customBgVideo'),
+        getMediaBlob('customActivationVideo'),
+        getMediaBlob('customBgAudio'),
+        getMediaBlob('customFanfareAudio'),
+      ]);
     return {
       customHandImageUrl: handBlob ? URL.createObjectURL(handBlob) : null,
       customBgVideoUrl: bgVideoBlob ? URL.createObjectURL(bgVideoBlob) : null,
-      customActivationVideoUrl: actVideoBlob ? URL.createObjectURL(actVideoBlob) : null,
+      customActivationVideoUrl: actVideoBlob
+        ? URL.createObjectURL(actVideoBlob)
+        : null,
+      customBgAudioUrl: bgAudioBlob ? URL.createObjectURL(bgAudioBlob) : null,
+      customFanfareAudioUrl: fanfareAudioBlob
+        ? URL.createObjectURL(fanfareAudioBlob)
+        : null,
     };
   } catch {
     return {
       customHandImageUrl: null,
       customBgVideoUrl: null,
       customActivationVideoUrl: null,
+      customBgAudioUrl: null,
+      customFanfareAudioUrl: null,
     };
   }
 }

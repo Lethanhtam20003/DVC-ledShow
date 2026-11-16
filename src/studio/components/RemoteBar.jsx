@@ -1,7 +1,12 @@
 import React from 'react';
-import { Play, RotateCcw, Trophy, Volume2 } from 'lucide-react';
+import { Play, RotateCcw, Trophy, Volume2, VolumeX } from 'lucide-react';
 
-export default function RemoteBar({ stagePhase, onCommand }) {
+export default function RemoteBar({
+  stagePhase,
+  audioEnabled = true,
+  onToggleAudio,
+  onCommand,
+}) {
   return (
     <div className="w-full max-w-5xl mx-auto mb-8 px-4 py-2.5 rounded-2xl bg-slate-900/85 border border-slate-800 backdrop-blur-xl shadow-lg flex flex-wrap items-center justify-between gap-3">
       <div className="flex items-center gap-2.5">
@@ -57,6 +62,28 @@ export default function RemoteBar({ stagePhase, onCommand }) {
         >
           <Volume2 className="w-3.5 h-3.5" /> Thử tiếng
         </button>
+
+        {onToggleAudio && (
+          <button
+            type="button"
+            onClick={onToggleAudio}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors cursor-pointer ${
+              audioEnabled
+                ? 'bg-slate-800 text-emerald-300 hover:bg-slate-700'
+                : 'bg-rose-500/20 text-rose-300 border border-rose-500/40 hover:bg-rose-500/30'
+            }`}
+          >
+            {audioEnabled ? (
+              <>
+                <Volume2 className="w-3.5 h-3.5" /> Loa: Bật
+              </>
+            ) : (
+              <>
+                <VolumeX className="w-3.5 h-3.5" /> Loa: Tắt
+              </>
+            )}
+          </button>
+        )}
       </div>
     </div>
   );

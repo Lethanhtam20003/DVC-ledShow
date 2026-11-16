@@ -50,6 +50,8 @@ export default function SetupWorkspace({
     customHandImageUrl: null,
     customBgVideoUrl: null,
     customActivationVideoUrl: null,
+    customBgAudioUrl: null,
+    customFanfareAudioUrl: null,
   });
 
   const timerRef = useRef(null);
@@ -77,8 +79,33 @@ export default function SetupWorkspace({
     ceremonyAudio.configure({
       volume: config.masterVolume,
       enabled: config.audioEnabled,
+      soundPreset: config.soundPreset,
+      touchSoundEnabled: config.touchSoundEnabled,
+      touchVolume: config.touchVolume,
+      countdownSoundEnabled: config.countdownSoundEnabled,
+      countdownVolume: config.countdownVolume,
+      fanfareSoundEnabled: config.fanfareSoundEnabled,
+      fanfareVolume: config.fanfareVolume,
+      bgAudioEnabled: config.bgAudioEnabled,
+      bgAudioVolume: config.bgAudioVolume,
+      customBgAudioUrl: mediaUrls.customBgAudioUrl,
+      customFanfareAudioUrl: mediaUrls.customFanfareAudioUrl,
     });
-  }, [config.masterVolume, config.audioEnabled]);
+  }, [
+    config.masterVolume,
+    config.audioEnabled,
+    config.soundPreset,
+    config.touchSoundEnabled,
+    config.touchVolume,
+    config.countdownSoundEnabled,
+    config.countdownVolume,
+    config.fanfareSoundEnabled,
+    config.fanfareVolume,
+    config.bgAudioEnabled,
+    config.bgAudioVolume,
+    mediaUrls.customBgAudioUrl,
+    mediaUrls.customFanfareAudioUrl,
+  ]);
 
   useEffect(() => {
     if (!open) {
@@ -365,14 +392,15 @@ export default function SetupWorkspace({
           </div>
         </div>
 
-        {/* RIGHT PANE: 4-Tab Organized Parameter Settings */}
+        {/* RIGHT PANE: 5-Tab Organized Parameter Settings */}
         <div className="lg:col-span-5 xl:col-span-4 flex flex-col min-h-0 bg-slate-950">
-          <div className="px-4 pt-3 pb-2.5 border-b border-slate-800 grid grid-cols-4 gap-1.5 shrink-0">
+          <div className="px-4 pt-3 pb-2.5 border-b border-slate-800 grid grid-cols-5 gap-1.5 shrink-0">
             {[
               { id: 'custom', label: 'Tay & Video', icon: Hand },
               { id: 'celebration', label: 'Vinh Danh', icon: Award },
               { id: 'pods', label: 'Bục & 3D', icon: Sliders },
-              { id: 'stage', label: 'Sáng & Loa', icon: Sun },
+              { id: 'stage', label: 'Ánh Sáng', icon: Sun },
+              { id: 'audio', label: 'Âm Thanh', icon: Volume2 },
             ].map((tab) => {
               const Icon = tab.icon;
               const active = activeTab === tab.id;
@@ -922,7 +950,7 @@ export default function SetupWorkspace({
               </>
             )}
 
-            {/* TAB 4: BRIGHTNESS & AUDIO */}
+            {/* TAB 4: BRIGHTNESS & HEADER */}
             {activeTab === 'stage' && (
               <>
                 <div>
@@ -975,22 +1003,322 @@ export default function SetupWorkspace({
                   />
                 </div>
 
-                <div>
-                  <div className="flex justify-between text-xs font-semibold text-slate-300 mb-2">
-                    <span>Âm lượng tổng (Fanfare & Trống)</span>
-                    <span className="text-amber-400">
-                      {Math.round(config.masterVolume * 100)}%
-                    </span>
+                <div className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-900/70 border border-slate-800">
+                  <div>
+                    <div className="text-xs font-semibold text-white">
+                      Hiện tiêu đề đầu màn hình chờ
+                    </div>
+                    <div className="text-[11px] text-slate-400">
+                      Tắt để sân khấu 3D thoáng sạch trước khi kích hoạt
+                    </div>
                   </div>
                   <input
-                    type="range"
-                    min={0}
-                    max={1}
-                    step={0.05}
-                    value={config.masterVolume}
-                    onChange={(e) => onChange({ masterVolume: Number(e.target.value) })}
-                    className="w-full accent-amber-400"
+                    type="checkbox"
+                    checked={config.showHeader}
+                    onChange={(e) => {
+                      onChange({ showHeader: e.target.checked });
+                      switchDemoPhase('standby');
+                    }}
+                    className="w-4 h-4 accent-amber-400 cursor-pointer"
                   />
+                </div>
+              </>
+            )}
+
+            {/* TAB 5: AUDIO SETTINGS */}
+            {activeTab === 'audio' && (
+              <>
+                <div className="p-3.5 rounded-2xl bg-slate-900/70 border border-slate-800 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-xs font-semibold text-white">
+                        Bật hệ thống âm thanh sân khấu
+                      </div>
+                      <div className="text-[11px] text-slate-400">
+                        Phím tắt nhanh trên Stage: M
+                      </div>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={config.audioEnabled !== false}
+                      onChange={(e) => onChange({ audioEnabled: e.target.checked })}
+                      className="w-4 h-4 accent-amber-400 cursor-pointer"
+                    />
+                  </div>
+
+                  <div>
+                    <div className="flex justify-between text-xs font-semibold text-slate-300 mb-1.5">
+                      <span>Âm lượng tổng (Master Out)</span>
+                      <span className="text-amber-400">
+                        {Math.round(config.masterVolume * 100)}%
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min={0}
+                      max={1}
+                      step={0.05}
+                      value={config.masterVolume}
+                      onChange={(e) => onChange({ masterVolume: Number(e.target.value) })}
+                      className="w-full accent-amber-400"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                      Phong cách âm thanh tổng hợp
+                    </label>
+                    <div className="grid grid-cols-3 gap-1.5">
+                      {[
+                        { id: 'ceremony', label: 'Khánh tiết' },
+                        { id: 'tech', label: 'Công nghệ' },
+                        { id: 'minimal', label: 'Tối giản' },
+                      ].map((preset) => (
+                        <button
+                          key={preset.id}
+                          type="button"
+                          onClick={() => onChange({ soundPreset: preset.id })}
+                          className={`py-2 rounded-xl text-xs font-semibold border cursor-pointer ${
+                            (config.soundPreset || 'ceremony') === preset.id
+                              ? 'bg-amber-400 text-slate-950 border-amber-400'
+                              : 'bg-slate-950 text-slate-300 border-slate-800'
+                          }`}
+                        >
+                          {preset.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Per-event audio controls */}
+                <div className="p-3.5 rounded-2xl bg-slate-900/70 border border-slate-800 space-y-3.5">
+                  <div className="text-xs font-bold text-amber-300">
+                    Âm lượng & Nghe thử từng hiệu ứng
+                  </div>
+
+                  {/* Touch Chime */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <label className="flex items-center gap-2 text-xs text-slate-200 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={config.touchSoundEnabled !== false}
+                          onChange={(e) =>
+                            onChange({ touchSoundEnabled: e.target.checked })
+                          }
+                          className="w-3.5 h-3.5 accent-amber-400"
+                        />
+                        Âm chạm bục tay ({Math.round((config.touchVolume ?? 0.85) * 100)}%)
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => ceremonyAudio.playTouchChime()}
+                        className="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-800 hover:bg-slate-700 text-amber-300 cursor-pointer"
+                      >
+                        Nghe thử
+                      </button>
+                    </div>
+                    <input
+                      type="range"
+                      min={0}
+                      max={1}
+                      step={0.05}
+                      value={config.touchVolume ?? 0.85}
+                      onChange={(e) => onChange({ touchVolume: Number(e.target.value) })}
+                      className="w-full accent-amber-400"
+                    />
+                  </div>
+
+                  {/* Countdown Beep */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <label className="flex items-center gap-2 text-xs text-slate-200 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={config.countdownSoundEnabled !== false}
+                          onChange={(e) =>
+                            onChange({ countdownSoundEnabled: e.target.checked })
+                          }
+                          className="w-3.5 h-3.5 accent-amber-400"
+                        />
+                        Âm đếm ngược ({Math.round((config.countdownVolume ?? 0.9) * 100)}%)
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => ceremonyAudio.playCountdownBeep(3)}
+                        className="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-800 hover:bg-slate-700 text-amber-300 cursor-pointer"
+                      >
+                        Nghe thử
+                      </button>
+                    </div>
+                    <input
+                      type="range"
+                      min={0}
+                      max={1}
+                      step={0.05}
+                      value={config.countdownVolume ?? 0.9}
+                      onChange={(e) =>
+                        onChange({ countdownVolume: Number(e.target.value) })
+                      }
+                      className="w-full accent-amber-400"
+                    />
+                  </div>
+
+                  {/* Fanfare */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <label className="flex items-center gap-2 text-xs text-slate-200 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={config.fanfareSoundEnabled !== false}
+                          onChange={(e) =>
+                            onChange({ fanfareSoundEnabled: e.target.checked })
+                          }
+                          className="w-3.5 h-3.5 accent-amber-400"
+                        />
+                        Nhạc Vinh danh ({Math.round((config.fanfareVolume ?? 1.0) * 100)}%)
+                      </label>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => ceremonyAudio.playFanfare()}
+                          className="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-800 hover:bg-slate-700 text-amber-300 cursor-pointer"
+                        >
+                          Nghe thử
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => onRemoteCommand?.('CMD_TEST_AUDIO')}
+                          className="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-amber-400/15 border border-amber-400/40 hover:bg-amber-400/25 text-amber-300 cursor-pointer"
+                        >
+                          Thử Stage
+                        </button>
+                      </div>
+                    </div>
+                    <input
+                      type="range"
+                      min={0}
+                      max={1}
+                      step={0.05}
+                      value={config.fanfareVolume ?? 1.0}
+                      onChange={(e) => onChange({ fanfareVolume: Number(e.target.value) })}
+                      className="w-full accent-amber-400"
+                    />
+                  </div>
+                </div>
+
+                {/* Custom MP3/WAV Uploads */}
+                <div className="p-3.5 rounded-2xl bg-slate-900/70 border border-slate-800 space-y-3">
+                  <div className="text-xs font-bold text-white">
+                    Tệp Âm Thanh Tùy Chỉnh (MP3 / WAV)
+                  </div>
+
+                  {/* Custom Background Music */}
+                  <div className="space-y-2 pb-2.5 border-b border-slate-800/80">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-slate-200">
+                        Nhạc nền màn hình chờ
+                      </span>
+                      <input
+                        type="checkbox"
+                        checked={Boolean(config.bgAudioEnabled)}
+                        onChange={(e) => onChange({ bgAudioEnabled: e.target.checked })}
+                        className="w-4 h-4 accent-amber-400 cursor-pointer"
+                      />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <label className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 hover:border-amber-400 text-xs font-semibold text-slate-200 cursor-pointer">
+                        <Upload className="w-3.5 h-3.5 text-amber-400" />
+                        {mediaUrls.customBgAudioUrl
+                          ? 'Đổi nhạc nền'
+                          : 'Tải nhạc nền MP3/WAV'}
+                        <input
+                          type="file"
+                          accept="audio/*"
+                          onChange={(e) =>
+                            handleMediaUpload(
+                              'customBgAudio',
+                              'hasCustomBgAudio',
+                              e.target.files?.[0]
+                            )
+                          }
+                          className="hidden"
+                        />
+                      </label>
+                      {mediaUrls.customBgAudioUrl && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleMediaDelete('customBgAudio', 'hasCustomBgAudio')
+                          }
+                          className="p-2 rounded-xl bg-rose-500/15 text-rose-400 hover:bg-rose-500/25 cursor-pointer"
+                          title="Xóa nhạc nền"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                    <div className="flex items-center justify-between text-[11px] text-slate-400">
+                      <span>Âm lượng nhạc nền</span>
+                      <span className="text-amber-400">
+                        {Math.round((config.bgAudioVolume ?? 0.45) * 100)}%
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min={0}
+                      max={1}
+                      step={0.05}
+                      value={config.bgAudioVolume ?? 0.45}
+                      onChange={(e) =>
+                        onChange({ bgAudioVolume: Number(e.target.value) })
+                      }
+                      className="w-full accent-amber-400"
+                    />
+                  </div>
+
+                  {/* Custom Fanfare Music */}
+                  <div className="space-y-2">
+                    <div className="text-xs font-semibold text-slate-200">
+                      Nhạc Vinh danh riêng (thay kèn đồng mặc định)
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <label className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 hover:border-amber-400 text-xs font-semibold text-slate-200 cursor-pointer">
+                        <Upload className="w-3.5 h-3.5 text-amber-400" />
+                        {mediaUrls.customFanfareAudioUrl
+                          ? 'Đổi nhạc Vinh danh'
+                          : 'Tải nhạc Vinh danh MP3/WAV'}
+                        <input
+                          type="file"
+                          accept="audio/*"
+                          onChange={(e) =>
+                            handleMediaUpload(
+                              'customFanfareAudio',
+                              'hasCustomFanfareAudio',
+                              e.target.files?.[0]
+                            )
+                          }
+                          className="hidden"
+                        />
+                      </label>
+                      {mediaUrls.customFanfareAudioUrl && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleMediaDelete(
+                              'customFanfareAudio',
+                              'hasCustomFanfareAudio'
+                            )
+                          }
+                          className="p-2 rounded-xl bg-rose-500/15 text-rose-400 hover:bg-rose-500/25 cursor-pointer"
+                          title="Xóa nhạc Vinh danh"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
                 <div className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-900/70 border border-slate-800">
@@ -1008,26 +1336,6 @@ export default function SetupWorkspace({
                     onChange={(e) =>
                       onChange({ activationVideoMuted: e.target.checked })
                     }
-                    className="w-4 h-4 accent-amber-400 cursor-pointer"
-                  />
-                </div>
-
-                <div className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-900/70 border border-slate-800">
-                  <div>
-                    <div className="text-xs font-semibold text-white">
-                      Hiện tiêu đề đầu màn hình chờ
-                    </div>
-                    <div className="text-[11px] text-slate-400">
-                      Tắt để sân khấu 3D thoáng sạch trước khi kích hoạt
-                    </div>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={config.showHeader}
-                    onChange={(e) => {
-                      onChange({ showHeader: e.target.checked });
-                      switchDemoPhase('standby');
-                    }}
                     className="w-4 h-4 accent-amber-400 cursor-pointer"
                   />
                 </div>
