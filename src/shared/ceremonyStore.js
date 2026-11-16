@@ -1,4 +1,4 @@
-import { getPatternById } from './patterns';
+import { getPatternById } from './patterns.js';
 
 export const STORAGE_KEY = 'cham_tay_studio_config_v2';
 export const CHANNEL_NAME = 'cham_tay_stage_sync_v2';
