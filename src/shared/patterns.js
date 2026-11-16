@@ -99,6 +99,32 @@ export const PATTERNS = [
       celebrationDesc: 'KHỞI ĐẦU VỮNG CHẮC - VƯƠN TẦM CAO MỚI',
     },
   },
+  {
+    id: 'custom-ceremony',
+    name: 'Tự Thiết Kế Mẫu Lễ Khai Mạc',
+    subtitle: 'Custom Bàn Tay Chạm & Video Trình Chiếu',
+    badge: 'Tự Custom',
+    isCustom: true,
+    description:
+      'Tải ảnh bàn tay chạm riêng, video chạy nền và video trình chiếu khi nhấn Bắt đầu kèm hiệu ứng bàn tay phát sáng rực rỡ.',
+    colors: {
+      primary: '#f5c542',
+      secondary: '#7e22ce',
+      accent: '#fde047',
+      bgTop: '#160a24',
+      bgBottom: '#05020a',
+      particle: '#facc15',
+      grid: '#581c87',
+      bloomStrength: 1.0,
+    },
+    defaults: {
+      eventBadge: 'LỄ KHAI MẠC • NGHI THỨC CHẠM TAY KÍCH HOẠT',
+      eventTitle: 'NGHI THỨC KHAI MẠC SỰ KIỆN',
+      eventSubtitle: 'ĐỒNG HÀNH PHÁT TRIỂN - BỨT PHÁ THÀNH CÔNG',
+      celebrationTitle: 'CHÚC MỪNG KHAI MẠC THÀNH CÔNG',
+      celebrationDesc: 'KHỞI ĐẦU RỰC RỠ - VỮNG BƯỚC TƯƠNG LAI',
+    },
+  },
 ];
 
 export function getPatternById(id) {

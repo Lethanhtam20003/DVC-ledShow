@@ -1,5 +1,5 @@
 import React from 'react';
-import { Check, Sparkles, Globe, Building2, Gem, SlidersHorizontal } from 'lucide-react';
+import { Check, Sparkles, Globe, Building2, Gem, Wand2, SlidersHorizontal } from 'lucide-react';
 import { PATTERNS } from '../../shared/patterns';
 
 const PATTERN_ICONS = {
@@ -7,11 +7,12 @@ const PATTERN_ICONS = {
   'holo-globe': Globe,
   'smart-city': Building2,
   'crystal-core': Gem,
+  'custom-ceremony': Wand2,
 };
 
 export default function PatternGrid({ selectedId, onSelectPattern, onOpenSetup }) {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-5xl mx-auto">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 max-w-6xl mx-auto">
       {PATTERNS.map((pattern) => {
         const Icon = PATTERN_ICONS[pattern.id] || Sparkles;
         const isSelected = pattern.id === selectedId;
@@ -19,15 +20,14 @@ export default function PatternGrid({ selectedId, onSelectPattern, onOpenSetup }
           <div
             key={pattern.id}
             onClick={() => onSelectPattern(pattern.id)}
-            className={`group relative rounded-3xl border p-6 transition-all duration-300 cursor-pointer overflow-hidden ${
-              isSelected
+            className={`group relative rounded-3xl border p-6 transition-all duration-300 cursor-pointer overflow-hidden ${isSelected
                 ? 'border-amber-400/80 bg-slate-900/90 shadow-[0_0_40px_rgba(245,197,66,0.16)]'
                 : 'border-slate-800/90 bg-slate-900/50 hover:border-slate-700 hover:bg-slate-900/80'
-            }`}
+              }`}
           >
             {/* Visual 3D Gradient Preview Header */}
             <div
-              className="relative h-40 rounded-2xl mb-5 overflow-hidden flex items-center justify-center border border-white/10"
+              className="relative h-32 rounded-2xl mb-4 overflow-hidden flex items-center justify-center border border-white/10"
               style={{
                 background: `radial-gradient(circle at 50% 45%, ${pattern.colors.secondary}99, ${pattern.colors.bgBottom} 85%)`,
               }}

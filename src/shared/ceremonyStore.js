@@ -28,6 +28,26 @@ export const DEFAULT_CONFIG = {
   celebrationTitle: 'CHÍNH THỨC KÍCH HOẠT THÀNH CÔNG',
   celebrationDesc: 'ĐỔI MỚI SÁNG TẠO - VƯƠN MÌNH - PHÁT TRIỂN BỀN VỮNG',
   customLogoData: null,
+
+  // Custom Hand & Video Ceremony Settings
+  handGlowColor: '#f5c542',
+  showPodLabels: true,
+  podLabels: ['Đại biểu 1', 'Đại biểu 2', 'Đại biểu 3', 'Đại biểu 4', 'Đại biểu 5'],
+  hasCustomHandImage: false,
+  hasCustomBgVideo: false,
+  hasCustomActivationVideo: false,
+  activationVideoMuted: true,
+
+  // Extended Celebration Page Customization
+  celebrationRibbon: 'NGHI THỨC KÍCH HOẠT HOÀN THÀNH',
+  logoSize: 112,
+  showCelebrationPillars: true,
+  celebrationTheme: 'match-pattern', // 'match-pattern' | 'royal-gold' | 'tech-cyan'
+  celebrationPillars: [
+    { title: 'CHÍNH QUYỀN SỐ', desc: 'Minh bạch & Kiến tạo' },
+    { title: 'KINH TẾ SỐ', desc: 'Đột phá & Bền vững' },
+    { title: 'XÃ HỘI SỐ', desc: 'Phục vụ Nhân dân' },
+  ],
 };
 
 export function extractYouTubeId(urlOrId) {

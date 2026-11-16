@@ -54,10 +54,14 @@ export default function App() {
     syncRef.current?.post(type, {});
   };
 
+  const handleMediaUpdated = () => {
+    syncRef.current?.post('MEDIA_UPDATED', {});
+  };
+
   const selectedPattern = getPatternById(config.patternId);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 pb-28">
+    <div className="min-h-screen bg-slate-950 text-slate-100 pb-14">
       {/* Minimalist Top Bar */}
       <header className="border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-md sticky top-0 z-30">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
@@ -98,15 +102,17 @@ export default function App() {
       </header>
 
       {/* Spacious Clean Home Canvas: Pattern Grid */}
-      <main className="max-w-6xl mx-auto px-6 pt-12">
-        <div className="text-center max-w-2xl mx-auto mb-12">
+      <main className="max-w-6xl mx-auto px-6 pt-8">
+        <div className="text-center max-w-2xl mx-auto mb-7">
           <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-white">
-            Chọn Mẫu Sân Khấu 3D
+            Chọn Mẫu Sân Khấu Lễ Khai Mạc 3D
           </h1>
-          <p className="mt-3 text-sm md:text-base text-slate-400">
-            Chọn một mẫu đồ họa 3D phù hợp với nghi thức, tùy chỉnh nhanh thông số và mở màn hình trình chiếu LED sạch sẽ cho sân khấu.
+          <p className="mt-2.5 text-sm md:text-base text-slate-400">
+            Chọn mẫu có sẵn hoặc tự thiết kế mẫu chạm tay & video trình chiếu riêng, kiểm tra trực tiếp trên Demo trước khi phát lên màn hình LED.
           </p>
         </div>
+
+        <RemoteBar stagePhase={stagePhase} onCommand={handleRemoteCommand} />
 
         <PatternGrid
           selectedId={config.patternId}
@@ -123,10 +129,8 @@ export default function App() {
         onClose={() => setDrawerOpen(false)}
         onLaunchStage={handleLaunchStage}
         onRemoteCommand={handleRemoteCommand}
+        onMediaUpdated={handleMediaUpdated}
       />
-
-      {/* Floating Remote Bar for Dual-Screen Stage Control */}
-      <RemoteBar stagePhase={stagePhase} onCommand={handleRemoteCommand} />
     </div>
   );
 }

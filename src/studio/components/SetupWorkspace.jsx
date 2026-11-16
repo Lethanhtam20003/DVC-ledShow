@@ -1,12 +1,15 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ArrowLeft,
-  Monitor,
+  Award,
+  Film,
+  Hand,
   MonitorPlay,
   Play,
   RotateCcw,
   Sliders,
-  Sparkles,
+  Sun,
+  Trash2,
   Trophy,
   Upload,
   Volume2,
@@ -15,6 +18,18 @@ import StageViewport from '../../stage/components/StageViewport';
 import { getPatternById } from '../../shared/patterns';
 import { extractYouTubeId } from '../../shared/ceremonyStore';
 import { ceremonyAudio } from '../../shared/audioEngine';
+import {
+  deleteMediaBlob,
+  loadAllCustomMediaUrls,
+  saveMediaBlob,
+} from '../../shared/mediaStorage';
+
+const GLOW_PRESETS = [
+  { label: 'Vàng Kim', color: '#f5c542' },
+  { label: 'Xanh Cyan', color: '#38bdf8' },
+  { label: 'Đỏ Lễ Tiết', color: '#ef4444' },
+  { label: 'Bạch Kim', color: '#ffffff' },
+];
 
 export default function SetupWorkspace({
   open,
@@ -23,13 +38,19 @@ export default function SetupWorkspace({
   onClose,
   onLaunchStage,
   onRemoteCommand,
+  onMediaUpdated,
 }) {
-  const [activeTab, setActiveTab] = useState('event');
+  const [activeTab, setActiveTab] = useState('custom');
   const [demoPhase, setDemoPhase] = useState('standby'); // 'standby' | 'charging' | 'celebration'
   const [demoProgress, setDemoProgress] = useState(0);
   const [demoCountdown, setDemoCountdown] = useState(5);
   const [demoFlash, setDemoFlash] = useState(false);
   const [demoHands, setDemoHands] = useState(() => new Set());
+  const [mediaUrls, setMediaUrls] = useState({
+    customHandImageUrl: null,
+    customBgVideoUrl: null,
+    customActivationVideoUrl: null,
+  });
 
   const timerRef = useRef(null);
   const lastSecRef = useRef(5);
@@ -40,6 +61,17 @@ export default function SetupWorkspace({
       timerRef.current = null;
     }
   }, []);
+
+  const refreshMedia = useCallback(async () => {
+    const urls = await loadAllCustomMediaUrls();
+    setMediaUrls(urls);
+  }, []);
+
+  useEffect(() => {
+    if (open) {
+      refreshMedia();
+    }
+  }, [open, refreshMedia]);
 
   useEffect(() => {
     ceremonyAudio.configure({
@@ -58,10 +90,26 @@ export default function SetupWorkspace({
     return () => stopTimer();
   }, [open, stopTimer]);
 
+  const completeDemo = useCallback(() => {
+    stopTimer();
+    setDemoFlash(true);
+    ceremonyAudio.playFanfare();
+    setTimeout(() => {
+      setDemoFlash(false);
+      setDemoPhase('celebration');
+    }, 280);
+  }, [stopTimer]);
+
   const runDemoCeremony = useCallback(() => {
     stopTimer();
     setDemoPhase('charging');
     setDemoProgress(0);
+
+    // If custom activation video is uploaded, let video's onEnded advance to celebration
+    if (mediaUrls.customActivationVideoUrl) {
+      return;
+    }
+
     const duration = config.chargeDuration || 5000;
     const totalSecs = Math.round(duration / 1000);
     lastSecRef.current = totalSecs;
@@ -82,16 +130,10 @@ export default function SetupWorkspace({
       }
 
       if (pct >= 100) {
-        stopTimer();
-        setDemoFlash(true);
-        ceremonyAudio.playFanfare();
-        setTimeout(() => {
-          setDemoFlash(false);
-          setDemoPhase('celebration');
-        }, 280);
+        completeDemo();
       }
     }, 30);
-  }, [config.chargeDuration, stopTimer]);
+  }, [config.chargeDuration, mediaUrls.customActivationVideoUrl, stopTimer, completeDemo]);
 
   const resetDemo = useCallback(() => {
     stopTimer();
@@ -139,12 +181,44 @@ export default function SetupWorkspace({
     });
   };
 
+  const handleMediaUpload = async (key, flagKey, file) => {
+    if (!file) return;
+    await saveMediaBlob(key, file);
+    onChange({ [flagKey]: true });
+    await refreshMedia();
+    onMediaUpdated?.();
+  };
+
+  const handleMediaDelete = async (key, flagKey) => {
+    await deleteMediaBlob(key);
+    onChange({ [flagKey]: false });
+    await refreshMedia();
+    onMediaUpdated?.();
+  };
+
   const handleLogoUpload = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = () => onChange({ customLogoData: reader.result });
+    reader.onload = () => {
+      onChange({ customLogoData: reader.result });
+      switchDemoPhase('celebration');
+    };
     reader.readAsDataURL(file);
+  };
+
+  const updatePillar = (idx, field, val) => {
+    const next = [...(config.celebrationPillars || [])];
+    next[idx] = { ...next[idx], [field]: val };
+    onChange({ celebrationPillars: next });
+    if (demoPhase !== 'celebration') switchDemoPhase('celebration');
+  };
+
+  const updatePodLabel = (idx, val) => {
+    const next = [...(config.podLabels || [])];
+    next[idx] = val;
+    onChange({ podLabels: next });
+    if (demoPhase === 'celebration') switchDemoPhase('standby');
   };
 
   if (!open) return null;
@@ -154,28 +228,28 @@ export default function SetupWorkspace({
   return (
     <div className="fixed inset-0 z-50 bg-slate-950 flex flex-col">
       {/* Top Studio Header */}
-      <header className="h-16 px-6 border-b border-slate-800 bg-slate-950/95 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-4">
+      <header className="h-14 px-5 border-b border-slate-800 bg-slate-950/95 flex items-center justify-between shrink-0">
+        <div className="flex items-center gap-3">
           <button
             type="button"
             onClick={onClose}
-            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-900 border border-slate-800 hover:border-slate-600 text-slate-200 transition-colors cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-900 border border-slate-800 hover:border-slate-600 text-slate-200 transition-colors cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4" />
             Quay lại Lưới Mẫu
           </button>
-          <div className="hidden sm:block">
-            <div className="text-sm font-bold text-white">
-              Thiết Lập & Demo Trực Quan
-            </div>
-            <div className="text-[11px] text-amber-300">{pattern.name}</div>
+          <div className="hidden sm:flex items-center gap-2">
+            <span className="text-sm font-bold text-white">Thiết Lập & Demo Trực Quan</span>
+            <span className="text-xs px-2.5 py-0.5 rounded-full bg-amber-400/15 text-amber-300 border border-amber-400/30">
+              {pattern.name}
+            </span>
           </div>
         </div>
 
         <button
           type="button"
           onClick={onLaunchStage}
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-gradient-to-r from-amber-400 to-yellow-300 text-slate-950 hover:brightness-110 shadow-lg shadow-amber-500/20 cursor-pointer"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold bg-gradient-to-r from-amber-400 to-yellow-300 text-slate-950 hover:brightness-110 shadow-lg shadow-amber-500/20 cursor-pointer"
         >
           <MonitorPlay className="w-4 h-4" />
           Mở Màn Hình Trình Chiếu LED
@@ -184,110 +258,121 @@ export default function SetupWorkspace({
 
       {/* Split Workspace */}
       <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12">
-        {/* LEFT PANE: Live 16:9 3D Demo + Direct Controls */}
-        <div className="lg:col-span-7 xl:col-span-8 p-5 lg:p-7 flex flex-col justify-center bg-slate-900/40 border-b lg:border-b-0 lg:border-r border-slate-800 overflow-y-auto">
-          <div className="w-full max-w-4xl mx-auto space-y-4">
-            {/* Live Preview Header & Quick State Switcher */}
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="text-xs font-semibold uppercase tracking-wider text-slate-300">
-                  Demo Sân Khấu 16:9 (Tương tác trực tiếp)
-                </span>
-              </div>
-
-              <div className="flex items-center gap-1.5 bg-slate-900 p-1 rounded-xl border border-slate-800">
-                {[
-                  { id: 'standby', label: 'Màn hình Chờ' },
-                  { id: 'charging', label: 'Đếm ngược' },
-                  { id: 'celebration', label: 'Màn Vinh danh' },
-                ].map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => switchDemoPhase(item.id)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
-                      demoPhase === item.id
-                        ? 'bg-amber-400 text-slate-950'
-                        : 'text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    {item.label}
-                  </button>
-                ))}
-              </div>
+        {/* LEFT PANE: Fits cleanly inside 100vh (Switcher + 16:9 Demo + Control Bar) */}
+        <div className="lg:col-span-7 xl:col-span-8 p-4 lg:p-5 flex flex-col justify-between gap-3 bg-slate-900/40 border-b lg:border-b-0 lg:border-r border-slate-800 min-h-0 overflow-hidden">
+          {/* Quick Phase Switcher */}
+          <div className="flex flex-wrap items-center justify-between gap-2 shrink-0">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="text-xs font-semibold uppercase tracking-wider text-slate-300">
+                Demo Sân Khấu 16:9
+              </span>
             </div>
 
-            {/* 16:9 Scaled StageViewport */}
-            <StageViewport
-              isPreview
-              config={config}
-              phase={demoPhase}
-              progress={demoProgress}
-              countdownSec={demoCountdown}
-              flashActive={demoFlash}
-              activeHands={demoHands}
-              onActivateHand={handleDemoHandDown}
-              onDeactivateHand={handleDemoHandUp}
-            />
+            <div className="flex items-center gap-1 bg-slate-900 p-1 rounded-xl border border-slate-800">
+              {[
+                { id: 'standby', label: 'Màn hình Chờ' },
+                { id: 'charging', label: 'Đếm ngược / Video' },
+                { id: 'celebration', label: 'Màn Vinh danh' },
+              ].map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => switchDemoPhase(item.id)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${demoPhase === item.id
+                      ? 'bg-amber-400 text-slate-950'
+                      : 'text-slate-400 hover:text-white'
+                    }`}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          </div>
 
-            {/* Demo Action & Remote Control Bar */}
-            <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-2xl bg-slate-900/90 border border-slate-800">
-              <div className="flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  onClick={runDemoCeremony}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-amber-400 text-slate-950 hover:bg-amber-300 transition-colors cursor-pointer"
-                >
-                  <Play className="w-3.5 h-3.5 fill-current" />
-                  Chạy thử nghi thức
-                </button>
-                <button
-                  type="button"
-                  onClick={resetDemo}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-800 text-slate-200 hover:bg-slate-700 transition-colors cursor-pointer"
-                >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                  Reset Demo
-                </button>
-                <button
-                  type="button"
-                  onClick={() => ceremonyAudio.playFanfare()}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-800 text-slate-200 hover:bg-slate-700 transition-colors cursor-pointer"
-                >
-                  <Volume2 className="w-3.5 h-3.5" />
-                  Thử âm thanh
-                </button>
-              </div>
+          {/* 16:9 Constrained Live Demo Frame */}
+          <div className="flex-1 min-h-0 flex items-center justify-center">
+            <div
+              className="w-full"
+              style={{ maxWidth: 'min(100%, calc((100vh - 215px) * 16 / 9))' }}
+            >
+              <StageViewport
+                isPreview
+                config={config}
+                phase={demoPhase}
+                progress={demoProgress}
+                countdownSec={demoCountdown}
+                flashActive={demoFlash}
+                activeHands={demoHands}
+                customHandImageUrl={mediaUrls.customHandImageUrl}
+                customBgVideoUrl={mediaUrls.customBgVideoUrl}
+                customActivationVideoUrl={mediaUrls.customActivationVideoUrl}
+                onActivateHand={handleDemoHandDown}
+                onDeactivateHand={handleDemoHandUp}
+                onActivationVideoEnded={completeDemo}
+              />
+            </div>
+          </div>
 
-              <div className="flex items-center gap-2">
-                <span className="text-[11px] text-slate-400">Gửi sang màn LED thật:</span>
-                <button
-                  type="button"
-                  onClick={() => onRemoteCommand('CMD_START')}
-                  className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/25 cursor-pointer"
-                >
-                  Kích hoạt Stage
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onRemoteCommand('CMD_PREVIEW_CELEBRATION')}
-                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-amber-300 hover:bg-slate-700 cursor-pointer"
-                >
-                  <Trophy className="w-3.5 h-3.5" /> Vinh danh
-                </button>
-              </div>
+          {/* Demo Action & Remote Control Bar */}
+          <div className="shrink-0 flex flex-wrap items-center justify-between gap-2 p-3 rounded-2xl bg-slate-900/90 border border-slate-800">
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={runDemoCeremony}
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-amber-400 text-slate-950 hover:bg-amber-300 transition-colors cursor-pointer"
+              >
+                <Play className="w-3.5 h-3.5 fill-current" />
+                Chạy thử nghi thức
+              </button>
+              <button
+                type="button"
+                onClick={resetDemo}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 text-slate-200 hover:bg-slate-700 transition-colors cursor-pointer"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                Reset Demo
+              </button>
+              <button
+                type="button"
+                onClick={() => ceremonyAudio.playFanfare()}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 text-slate-200 hover:bg-slate-700 transition-colors cursor-pointer"
+              >
+                <Volume2 className="w-3.5 h-3.5" />
+                Thử âm thanh
+              </button>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] text-slate-400 hidden sm:inline">
+                Đồng bộ Stage thật:
+              </span>
+              <button
+                type="button"
+                onClick={() => onRemoteCommand('CMD_START')}
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/25 cursor-pointer"
+              >
+                Kích hoạt
+              </button>
+              <button
+                type="button"
+                onClick={() => onRemoteCommand('CMD_PREVIEW_CELEBRATION')}
+                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-amber-300 hover:bg-slate-700 cursor-pointer"
+              >
+                <Trophy className="w-3.5 h-3.5" /> Vinh danh
+              </button>
             </div>
           </div>
         </div>
 
-        {/* RIGHT PANE: Configuration Tabs */}
+        {/* RIGHT PANE: 4-Tab Organized Parameter Settings */}
         <div className="lg:col-span-5 xl:col-span-4 flex flex-col min-h-0 bg-slate-950">
-          <div className="px-6 pt-5 pb-3 border-b border-slate-800 flex gap-2 shrink-0">
+          <div className="px-4 pt-3 pb-2.5 border-b border-slate-800 grid grid-cols-4 gap-1.5 shrink-0">
             {[
-              { id: 'event', label: 'Sự Kiện & Logo', icon: Sparkles },
-              { id: 'pods', label: 'Bục Chạm & 3D', icon: Sliders },
-              { id: 'media', label: 'Video & Độ Sáng', icon: Monitor },
+              { id: 'custom', label: 'Tay & Video', icon: Hand },
+              { id: 'celebration', label: 'Vinh Danh', icon: Award },
+              { id: 'pods', label: 'Bục & 3D', icon: Sliders },
+              { id: 'stage', label: 'Sáng & Loa', icon: Sun },
             ].map((tab) => {
               const Icon = tab.icon;
               const active = activeTab === tab.id;
@@ -296,11 +381,10 @@ export default function SetupWorkspace({
                   key={tab.id}
                   type="button"
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-colors cursor-pointer ${
-                    active
+                  className={`flex flex-col items-center justify-center gap-1 py-2 px-1 rounded-xl text-[11px] font-semibold transition-colors cursor-pointer ${active
                       ? 'bg-amber-400 text-slate-950'
                       : 'bg-slate-900 text-slate-400 hover:text-white'
-                  }`}
+                    }`}
                 >
                   <Icon className="w-3.5 h-3.5" />
                   {tab.label}
@@ -309,57 +393,276 @@ export default function SetupWorkspace({
             })}
           </div>
 
-          <div className="flex-1 overflow-y-auto p-6 space-y-5">
-            {activeTab === 'event' && (
+          <div className="flex-1 overflow-y-auto p-5 space-y-5">
+            {/* TAB 1: CUSTOM HAND IMAGE & TRIGGERED/BACKGROUND VIDEOS */}
+            {activeTab === 'custom' && (
+              <>
+                <div className="p-4 rounded-2xl bg-slate-900/70 border border-slate-800 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
+                      <Hand className="w-3.5 h-3.5" /> Ảnh Bàn Tay Chạm Custom
+                    </span>
+                    {mediaUrls.customHandImageUrl && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleMediaDelete('customHandImage', 'hasCustomHandImage')
+                        }
+                        className="inline-flex items-center gap-1 text-[11px] text-rose-400 hover:underline cursor-pointer"
+                      >
+                        <Trash2 className="w-3 h-3" /> Dùng vân tay mặc định
+                      </button>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-slate-400">
+                    Tải ảnh bàn tay / nút chạm PNG nền trong suốt. Khi chạm hoặc kích hoạt, bàn tay sẽ phát sáng rực rỡ.
+                  </p>
+                  <label className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-white cursor-pointer">
+                    <Upload className="w-3.5 h-3.5 text-amber-400" />
+                    {mediaUrls.customHandImageUrl ? 'Đổi ảnh bàn tay' : 'Tải ảnh bàn tay (PNG/SVG)'}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) =>
+                        handleMediaUpload(
+                          'customHandImage',
+                          'hasCustomHandImage',
+                          e.target.files?.[0]
+                        )
+                      }
+                      className="hidden"
+                    />
+                  </label>
+
+                  <div className="pt-2">
+                    <div className="text-[11px] font-semibold text-slate-300 mb-2">
+                      Màu phát sáng bàn tay khi chạm / chạy video:
+                    </div>
+                    <div className="grid grid-cols-4 gap-1.5">
+                      {GLOW_PRESETS.map((g) => (
+                        <button
+                          key={g.color}
+                          type="button"
+                          onClick={() => onChange({ handGlowColor: g.color })}
+                          className={`py-1.5 px-2 rounded-lg text-[11px] font-semibold border flex items-center justify-center gap-1.5 cursor-pointer ${config.handGlowColor === g.color
+                              ? 'border-white bg-slate-800 text-white'
+                              : 'border-slate-800 bg-slate-950 text-slate-400'
+                            }`}
+                        >
+                          <span
+                            className="w-2.5 h-2.5 rounded-full"
+                            style={{ backgroundColor: g.color }}
+                          />
+                          {g.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-slate-900/70 border border-slate-800 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-sky-300 uppercase tracking-wider flex items-center gap-1.5">
+                      <Film className="w-3.5 h-3.5" /> Video Trình Chiếu Khi Bắt Đầu
+                    </span>
+                    {mediaUrls.customActivationVideoUrl && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleMediaDelete(
+                            'customActivationVideo',
+                            'hasCustomActivationVideo'
+                          )
+                        }
+                        className="inline-flex items-center gap-1 text-[11px] text-rose-400 hover:underline cursor-pointer"
+                      >
+                        <Trash2 className="w-3 h-3" /> Xóa video
+                      </button>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-slate-400">
+                    Khi nhấn Bắt đầu (hoặc chạm đủ bục), video này sẽ chạy toàn màn hình kèm theo các bàn tay phát sáng, kết thúc tự chuyển sang Màn Vinh danh.
+                  </p>
+                  <label className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-amber-400/15 hover:bg-amber-400/25 border border-amber-400/40 text-xs font-semibold text-amber-200 cursor-pointer">
+                    <Upload className="w-3.5 h-3.5 text-amber-400" />
+                    {mediaUrls.customActivationVideoUrl
+                      ? 'Đổi Video kích hoạt (MP4)'
+                      : 'Tải Video trình chiếu (MP4/WebM)'}
+                    <input
+                      type="file"
+                      accept="video/*"
+                      onChange={(e) =>
+                        handleMediaUpload(
+                          'customActivationVideo',
+                          'hasCustomActivationVideo',
+                          e.target.files?.[0]
+                        )
+                      }
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-slate-900/70 border border-slate-800 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-200 uppercase tracking-wider">
+                      Video Chạy Nền (Standby)
+                    </span>
+                    {mediaUrls.customBgVideoUrl && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleMediaDelete('customBgVideo', 'hasCustomBgVideo')
+                        }
+                        className="inline-flex items-center gap-1 text-[11px] text-rose-400 hover:underline cursor-pointer"
+                      >
+                        <Trash2 className="w-3 h-3" /> Xóa video riêng
+                      </button>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      { id: 'local', label: 'MP4 Offline' },
+                      { id: 'youtube', label: 'YouTube' },
+                      { id: 'none', label: 'Chỉ nền 3D' },
+                    ].map((src) => (
+                      <button
+                        key={src.id}
+                        type="button"
+                        onClick={() =>
+                          onChange({
+                            videoBgEnabled: src.id !== 'none',
+                            videoSource: src.id,
+                          })
+                        }
+                        className={`py-2 rounded-xl text-xs font-semibold border cursor-pointer ${(src.id === 'none' && !config.videoBgEnabled) ||
+                            (config.videoBgEnabled && config.videoSource === src.id)
+                            ? 'bg-amber-400 text-slate-950 border-amber-400'
+                            : 'bg-slate-950 text-slate-300 border-slate-800'
+                          }`}
+                      >
+                        {src.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  <label className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-white cursor-pointer">
+                    <Upload className="w-3.5 h-3.5 text-sky-400" />
+                    {mediaUrls.customBgVideoUrl
+                      ? 'Đổi Video nền riêng'
+                      : 'Tải Video nền riêng (MP4)'}
+                    <input
+                      type="file"
+                      accept="video/*"
+                      onChange={(e) =>
+                        handleMediaUpload(
+                          'customBgVideo',
+                          'hasCustomBgVideo',
+                          e.target.files?.[0]
+                        )
+                      }
+                      className="hidden"
+                    />
+                  </label>
+
+                  {config.videoBgEnabled &&
+                    config.videoSource === 'youtube' &&
+                    !mediaUrls.customBgVideoUrl && (
+                      <input
+                        type="text"
+                        placeholder="Link hoặc ID YouTube (Mặc định: sbDz4hoZWCk)"
+                        value={config.youtubeVideoId}
+                        onChange={(e) =>
+                          onChange({ youtubeVideoId: extractYouTubeId(e.target.value) })
+                        }
+                        className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:border-amber-400"
+                      />
+                    )}
+                </div>
+              </>
+            )}
+
+            {/* TAB 2: CELEBRATION / HONORING PAGE SETTINGS */}
+            {activeTab === 'celebration' && (
               <>
                 <div>
                   <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                    Tiêu đề Vinh Danh (Hiện khi kích hoạt xong)
+                    Dải Ribbon phía trên
+                  </label>
+                  <input
+                    type="text"
+                    value={config.celebrationRibbon || ''}
+                    onChange={(e) => {
+                      onChange({ celebrationRibbon: e.target.value });
+                      if (demoPhase !== 'celebration') switchDemoPhase('celebration');
+                    }}
+                    className="w-full px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-800 text-sm text-white focus:outline-none focus:border-amber-400"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                    Tiêu đề chính Trang Vinh Danh
                   </label>
                   <input
                     type="text"
                     value={config.celebrationTitle}
                     onChange={(e) => {
                       onChange({ celebrationTitle: e.target.value });
-                      if (demoPhase === 'standby') switchDemoPhase('celebration');
+                      if (demoPhase !== 'celebration') switchDemoPhase('celebration');
                     }}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-sm text-white focus:outline-none focus:border-amber-400"
+                    className="w-full px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-800 text-sm text-white focus:outline-none focus:border-amber-400"
                   />
                 </div>
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                    Khẩu hiệu Vinh Danh
+                    Khẩu hiệu / Thông điệp
                   </label>
                   <input
                     type="text"
                     value={config.celebrationDesc}
                     onChange={(e) => {
                       onChange({ celebrationDesc: e.target.value });
-                      if (demoPhase === 'standby') switchDemoPhase('celebration');
+                      if (demoPhase !== 'celebration') switchDemoPhase('celebration');
                     }}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-sm text-white focus:outline-none focus:border-amber-400"
+                    className="w-full px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-800 text-sm text-white focus:outline-none focus:border-amber-400"
                   />
                 </div>
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                    Logo Đơn Vị (PNG nền trong suốt)
+                    Tông màu chữ Vinh danh
                   </label>
-                  <div className="flex items-center gap-3">
-                    <label className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 hover:border-amber-400 text-xs font-semibold text-slate-200 cursor-pointer">
-                      <Upload className="w-4 h-4 text-amber-400" />
-                      Tải ảnh Logo
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => {
-                          handleLogoUpload(e);
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      { id: 'match-pattern', label: 'Theo Mẫu' },
+                      { id: 'royal-gold', label: 'Vàng Đỏ' },
+                      { id: 'tech-cyan', label: 'Xanh Số' },
+                    ].map((t) => (
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() => {
+                          onChange({ celebrationTheme: t.id });
                           switchDemoPhase('celebration');
                         }}
-                        className="hidden"
-                      />
-                    </label>
+                        className={`py-2 rounded-xl text-xs font-semibold border cursor-pointer ${config.celebrationTheme === t.id
+                            ? 'bg-amber-400 text-slate-950 border-amber-400'
+                            : 'bg-slate-900 text-slate-300 border-slate-800'
+                          }`}
+                      >
+                        {t.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="p-3.5 rounded-2xl bg-slate-900/70 border border-slate-800 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-slate-200">
+                      Logo Đơn Vị
+                    </span>
                     {config.customLogoData && (
                       <button
                         type="button"
@@ -370,30 +673,74 @@ export default function SetupWorkspace({
                       </button>
                     )}
                   </div>
+                  <label className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-white cursor-pointer">
+                    <Upload className="w-3.5 h-3.5 text-amber-400" />
+                    Tải ảnh Logo (PNG)
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleLogoUpload}
+                      className="hidden"
+                    />
+                  </label>
+                  <div>
+                    <div className="flex justify-between text-[11px] text-slate-300 mb-1">
+                      <span>Kích thước Logo</span>
+                      <span className="text-amber-400">{config.logoSize || 112}px</span>
+                    </div>
+                    <input
+                      type="range"
+                      min={72}
+                      max={220}
+                      value={config.logoSize || 112}
+                      onChange={(e) => {
+                        onChange({ logoSize: Number(e.target.value) });
+                        if (demoPhase !== 'celebration') switchDemoPhase('celebration');
+                      }}
+                      className="w-full accent-amber-400"
+                    />
+                  </div>
                 </div>
 
-                <div className="flex items-center justify-between p-4 rounded-2xl bg-slate-900/70 border border-slate-800">
-                  <div>
-                    <div className="text-sm font-semibold text-white">
-                      Hiện tiêu đề đầu màn hình chờ
-                    </div>
-                    <div className="text-xs text-slate-400">
-                      Tắt để sân khấu 3D thoáng sạch trước khi kích hoạt
-                    </div>
+                <div className="p-3.5 rounded-2xl bg-slate-900/70 border border-slate-800 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-white">
+                      Hiển thị 3 Thẻ Trụ Cột / Thông Điệp
+                    </span>
+                    <input
+                      type="checkbox"
+                      checked={config.showCelebrationPillars !== false}
+                      onChange={(e) => {
+                        onChange({ showCelebrationPillars: e.target.checked });
+                        switchDemoPhase('celebration');
+                      }}
+                      className="w-4 h-4 accent-amber-400 cursor-pointer"
+                    />
                   </div>
-                  <input
-                    type="checkbox"
-                    checked={config.showHeader}
-                    onChange={(e) => {
-                      onChange({ showHeader: e.target.checked });
-                      switchDemoPhase('standby');
-                    }}
-                    className="w-4 h-4 accent-amber-400 cursor-pointer"
-                  />
+                  {config.showCelebrationPillars !== false &&
+                    (config.celebrationPillars || []).map((pillar, idx) => (
+                      <div key={idx} className="grid grid-cols-2 gap-2">
+                        <input
+                          type="text"
+                          value={pillar.title}
+                          onChange={(e) => updatePillar(idx, 'title', e.target.value)}
+                          placeholder={`Tiêu đề ${idx + 1}`}
+                          className="px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-xs text-white"
+                        />
+                        <input
+                          type="text"
+                          value={pillar.desc}
+                          onChange={(e) => updatePillar(idx, 'desc', e.target.value)}
+                          placeholder={`Mô tả ${idx + 1}`}
+                          className="px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-xs text-slate-300"
+                        />
+                      </div>
+                    ))}
                 </div>
               </>
             )}
 
+            {/* TAB 3: TOUCH PODS & 3D POSITIONING */}
             {activeTab === 'pods' && (
               <>
                 <div>
@@ -416,7 +763,7 @@ export default function SetupWorkspace({
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                    Thời gian đếm ngược kích hoạt
+                    Thời gian đếm ngược (khi không dùng Video kích hoạt)
                   </label>
                   <div className="grid grid-cols-3 gap-2">
                     {[
@@ -428,11 +775,10 @@ export default function SetupWorkspace({
                         key={opt.val}
                         type="button"
                         onClick={() => onChange({ chargeDuration: opt.val })}
-                        className={`py-2 rounded-xl text-xs font-semibold border cursor-pointer ${
-                          config.chargeDuration === opt.val
+                        className={`py-2 rounded-xl text-xs font-semibold border cursor-pointer ${config.chargeDuration === opt.val
                             ? 'bg-amber-400 text-slate-950 border-amber-400'
                             : 'bg-slate-900 text-slate-300 border-slate-800'
-                        }`}
+                          }`}
                       >
                         {opt.label}
                       </button>
@@ -441,7 +787,7 @@ export default function SetupWorkspace({
                 </div>
 
                 <div>
-                  <div className="flex justify-between text-xs font-semibold text-slate-300 mb-2">
+                  <div className="flex justify-between text-xs font-semibold text-slate-300 mb-1.5">
                     <span>Độ cao hàng bục chạm (Pod Y)</span>
                     <span className="text-amber-400">{config.podY}px</span>
                   </div>
@@ -459,7 +805,7 @@ export default function SetupWorkspace({
                 </div>
 
                 <div>
-                  <div className="flex justify-between text-xs font-semibold text-slate-300 mb-2">
+                  <div className="flex justify-between text-xs font-semibold text-slate-300 mb-1.5">
                     <span>Kích thước bục chạm</span>
                     <span className="text-amber-400">{config.podSize}px</span>
                   </div>
@@ -477,7 +823,7 @@ export default function SetupWorkspace({
                 </div>
 
                 <div>
-                  <div className="flex justify-between text-xs font-semibold text-slate-300 mb-2">
+                  <div className="flex justify-between text-xs font-semibold text-slate-300 mb-1.5">
                     <span>Khoảng cách giữa các bục (Pod Gap)</span>
                     <span className="text-amber-400">{config.podGap}px</span>
                   </div>
@@ -495,7 +841,7 @@ export default function SetupWorkspace({
                 </div>
 
                 <div>
-                  <div className="flex justify-between text-xs font-semibold text-slate-300 mb-2">
+                  <div className="flex justify-between text-xs font-semibold text-slate-300 mb-1.5">
                     <span>Tỷ lệ khối 3D trung tâm</span>
                     <span className="text-amber-400">{config.coreScale.toFixed(1)}x</span>
                   </div>
@@ -514,8 +860,8 @@ export default function SetupWorkspace({
                 </div>
 
                 <div>
-                  <div className="flex justify-between text-xs font-semibold text-slate-300 mb-2">
-                    <span>Độ cao khối 3D trung tâm (Core Y)</span>
+                  <div className="flex justify-between text-xs font-semibold text-slate-300 mb-1.5">
+                    <span>Độ cao khối 3D (Core Y)</span>
                     <span className="text-amber-400">{config.coreY}px</span>
                   </div>
                   <input
@@ -529,6 +875,33 @@ export default function SetupWorkspace({
                     }}
                     className="w-full accent-amber-400"
                   />
+                </div>
+
+                <div className="p-3.5 rounded-2xl bg-slate-900/70 border border-slate-800 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-white">
+                      Hiện nhãn tên dưới mỗi bàn tay
+                    </span>
+                    <input
+                      type="checkbox"
+                      checked={config.showPodLabels !== false}
+                      onChange={(e) => onChange({ showPodLabels: e.target.checked })}
+                      className="w-4 h-4 accent-amber-400 cursor-pointer"
+                    />
+                  </div>
+                  {config.showPodLabels !== false && (
+                    <div className="grid grid-cols-2 gap-1.5">
+                      {Array.from({ length: Math.min(config.handCount, 8) }, (_, i) => (
+                        <input
+                          key={i}
+                          type="text"
+                          value={(config.podLabels || [])[i] ?? `Đại biểu ${i + 1}`}
+                          onChange={(e) => updatePodLabel(i, e.target.value)}
+                          className="px-2.5 py-1 rounded-lg bg-slate-950 border border-slate-800 text-[11px] text-slate-200"
+                        />
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 <button
@@ -549,56 +922,9 @@ export default function SetupWorkspace({
               </>
             )}
 
-            {activeTab === 'media' && (
+            {/* TAB 4: BRIGHTNESS & AUDIO */}
+            {activeTab === 'stage' && (
               <>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-2">
-                    Nguồn Video Nền
-                  </label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {[
-                      { id: 'local', label: 'MP4 Offline' },
-                      { id: 'youtube', label: 'YouTube' },
-                      { id: 'none', label: 'Chỉ nền 3D' },
-                    ].map((src) => (
-                      <button
-                        key={src.id}
-                        type="button"
-                        onClick={() =>
-                          onChange({
-                            videoBgEnabled: src.id !== 'none',
-                            videoSource: src.id,
-                          })
-                        }
-                        className={`py-2 rounded-xl text-xs font-semibold border cursor-pointer ${
-                          (src.id === 'none' && !config.videoBgEnabled) ||
-                          (config.videoBgEnabled && config.videoSource === src.id)
-                            ? 'bg-amber-400 text-slate-950 border-amber-400'
-                            : 'bg-slate-900 text-slate-300 border-slate-800'
-                        }`}
-                      >
-                        {src.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {config.videoBgEnabled && config.videoSource === 'youtube' && (
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                      Link hoặc ID YouTube (Mặc định: sbDz4hoZWCk)
-                    </label>
-                    <input
-                      type="text"
-                      value={config.youtubeVideoId}
-                      onChange={(e) =>
-                        onChange({ youtubeVideoId: extractYouTubeId(e.target.value) })
-                      }
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-sm text-white focus:outline-none focus:border-amber-400"
-                    />
-                  </div>
-                )}
-
                 <div>
                   <div className="flex justify-between text-xs font-semibold text-slate-300 mb-2">
                     <span>Độ rõ Video nền</span>
@@ -632,6 +958,23 @@ export default function SetupWorkspace({
                   />
                 </div>
 
+                <div className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-900/70 border border-slate-800">
+                  <div>
+                    <div className="text-xs font-semibold text-white">
+                      Tự dịu sáng khi Vinh danh (Photo-Op)
+                    </div>
+                    <div className="text-[11px] text-slate-400">
+                      Giữ tối đa 72% để chụp ảnh lãnh đạo không bị lóa
+                    </div>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={config.autoPhotoOpDim}
+                    onChange={(e) => onChange({ autoPhotoOpDim: e.target.checked })}
+                    className="w-4 h-4 accent-amber-400 cursor-pointer"
+                  />
+                </div>
+
                 <div>
                   <div className="flex justify-between text-xs font-semibold text-slate-300 mb-2">
                     <span>Âm lượng tổng (Fanfare & Trống)</span>
@@ -649,6 +992,45 @@ export default function SetupWorkspace({
                     className="w-full accent-amber-400"
                   />
                 </div>
+
+                <div className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-900/70 border border-slate-800">
+                  <div>
+                    <div className="text-xs font-semibold text-white">
+                      Tắt tiếng gốc của Video kích hoạt
+                    </div>
+                    <div className="text-[11px] text-slate-400">
+                      Bật nếu dùng âm thanh từ bàn Mixer ngoài hoặc Web Audio
+                    </div>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={config.activationVideoMuted !== false}
+                    onChange={(e) =>
+                      onChange({ activationVideoMuted: e.target.checked })
+                    }
+                    className="w-4 h-4 accent-amber-400 cursor-pointer"
+                  />
+                </div>
+
+                <div className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-900/70 border border-slate-800">
+                  <div>
+                    <div className="text-xs font-semibold text-white">
+                      Hiện tiêu đề đầu màn hình chờ
+                    </div>
+                    <div className="text-[11px] text-slate-400">
+                      Tắt để sân khấu 3D thoáng sạch trước khi kích hoạt
+                    </div>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={config.showHeader}
+                    onChange={(e) => {
+                      onChange({ showHeader: e.target.checked });
+                      switchDemoPhase('standby');
+                    }}
+                    className="w-4 h-4 accent-amber-400 cursor-pointer"
+                  />
+                </div>
               </>
             )}
           </div>
@@ -657,4 +1039,3 @@ export default function SetupWorkspace({
     </div>
   );
 }
-

@@ -85,13 +85,13 @@ function buildCenterpiece(patternId, colors) {
     group.add(outerRim, midRim, innerRim, coreDisc, raysGroup, orbitRing);
     group.userData = { raysGroup, orbitRing, outerRim };
   } else if (patternId === 'holo-globe') {
-    // 3D Hologram Digital Globe
+    // 3D Hologram Digital Globe (scaled cleanly above TouchPods safe-zone)
     const globe = new THREE.Mesh(
-      new THREE.IcosahedronGeometry(1.9, 2),
+      new THREE.IcosahedronGeometry(1.62, 2),
       wireMat
     );
     const innerCore = new THREE.Mesh(
-      new THREE.SphereGeometry(1.25, 32, 32),
+      new THREE.SphereGeometry(1.06, 32, 32),
       new THREE.MeshStandardMaterial({
         color: secondaryColor,
         emissive: primaryColor,
@@ -101,13 +101,13 @@ function buildCenterpiece(patternId, colors) {
       })
     );
     const eqRing1 = new THREE.Mesh(
-      new THREE.TorusGeometry(2.55, 0.025, 12, 96),
+      new THREE.TorusGeometry(2.18, 0.024, 12, 96),
       ringMat
     );
     eqRing1.rotation.x = Math.PI / 2.4;
 
     const eqRing2 = new THREE.Mesh(
-      new THREE.TorusGeometry(2.85, 0.02, 12, 96),
+      new THREE.TorusGeometry(2.42, 0.018, 12, 96),
       ringMat
     );
     eqRing2.rotation.y = Math.PI / 3;
@@ -195,13 +195,20 @@ function buildCenterpiece(patternId, colors) {
   return group;
 }
 
-export default function ThreeStage({ patternId, phase, progress, coreY = 0, coreScale = 1 }) {
+export default function ThreeStage({
+  patternId,
+  phase,
+  progress,
+  coreY = 0,
+  coreScale = 1,
+  hideCenterpiece = false,
+}) {
   const containerRef = useRef(null);
-  const stateRef = useRef({ phase, progress, coreY, coreScale });
+  const stateRef = useRef({ phase, progress, coreY, coreScale, hideCenterpiece });
 
   useEffect(() => {
-    stateRef.current = { phase, progress, coreY, coreScale };
-  }, [phase, progress, coreY, coreScale]);
+    stateRef.current = { phase, progress, coreY, coreScale, hideCenterpiece };
+  }, [phase, progress, coreY, coreScale, hideCenterpiece]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -314,22 +321,28 @@ export default function ThreeStage({ patternId, phase, progress, coreY = 0, core
     const animate = () => {
       rafId = requestAnimationFrame(animate);
       const t = clock.getElapsedTime();
-      const { phase: curPhase, progress: curProg, coreY: cY, coreScale: cScale } =
-        stateRef.current;
+      const {
+        phase: curPhase,
+        progress: curProg,
+        coreY: cY,
+        coreScale: cScale,
+        hideCenterpiece: hideCore,
+      } = stateRef.current;
 
       const isCharging = curPhase === 'charging';
       const isCeleb = curPhase === 'celebration';
       const speedMul = isCharging ? 1 + (curProg / 100) * 3.5 : isCeleb ? 0.65 : 1;
 
-      // Hide centerpiece clutter cleanly during celebration Photo-Op
-      const targetVisibleScale = isCeleb ? 0.001 : cScale;
+      // Hide centerpiece clutter cleanly during celebration Photo-Op or custom activation video
+      const targetVisibleScale = isCeleb || hideCore ? 0.001 : cScale;
       centerpiece.scale.lerp(
         new THREE.Vector3(targetVisibleScale, targetVisibleScale, targetVisibleScale),
         0.08
       );
+      const baseLiftY = patternId === 'holo-globe' ? 0.72 : 0.45;
       centerpiece.position.y = THREE.MathUtils.lerp(
         centerpiece.position.y,
-        0.35 - cY * 0.008,
+        baseLiftY - cY * 0.008,
         0.1
       );
 

@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import StageViewport from './components/StageViewport';
 import { ceremonyAudio } from '../shared/audioEngine';
+import { loadAllCustomMediaUrls } from '../shared/mediaStorage';
 import {
   createSyncChannel,
   loadConfig,
@@ -10,6 +11,11 @@ import {
 
 export default function StageApp() {
   const [config, setConfig] = useState(() => loadConfig());
+  const [mediaUrls, setMediaUrls] = useState({
+    customHandImageUrl: null,
+    customBgVideoUrl: null,
+    customActivationVideoUrl: null,
+  });
   const [phase, setPhase] = useState('standby'); // 'standby' | 'charging' | 'celebration'
   const [progress, setProgress] = useState(0);
   const [countdownSec, setCountdownSec] = useState(5);
@@ -105,11 +111,22 @@ export default function StageApp() {
     }, 220);
   }, [stopChargeTimer]);
 
+  const refreshMedia = useCallback(async () => {
+    const urls = await loadAllCustomMediaUrls();
+    setMediaUrls(urls);
+  }, []);
+
+  useEffect(() => {
+    refreshMedia();
+  }, [refreshMedia]);
+
   // Listen to Studio updates via BroadcastChannel & storage event
   useEffect(() => {
     const channel = createSyncChannel((msg) => {
       if (msg.type === 'CONFIG_UPDATE' && msg.payload) {
         setConfig(msg.payload);
+      } else if (msg.type === 'MEDIA_UPDATED') {
+        refreshMedia();
       } else if (msg.type === 'CMD_START') {
         startCharging(true);
       } else if (msg.type === 'CMD_RESET') {
@@ -133,7 +150,7 @@ export default function StageApp() {
       channel.close();
       window.removeEventListener('storage', onStorage);
     };
-  }, [startCharging, resetStage, previewCelebration]);
+  }, [startCharging, resetStage, previewCelebration, refreshMedia]);
 
   // Keyboard shortcuts directly on LED Stage
   useEffect(() => {
@@ -152,9 +169,9 @@ export default function StageApp() {
       } else if (e.key === 'F11') {
         e.preventDefault();
         if (!document.fullscreenElement) {
-          document.documentElement.requestFullscreen?.().catch(() => {});
+          document.documentElement.requestFullscreen?.().catch(() => { });
         } else {
-          document.exitFullscreen?.().catch(() => {});
+          document.exitFullscreen?.().catch(() => { });
         }
       }
     };
@@ -200,8 +217,12 @@ export default function StageApp() {
       countdownSec={countdownSec}
       flashActive={flashActive}
       activeHands={activeHands}
+      customHandImageUrl={mediaUrls.customHandImageUrl}
+      customBgVideoUrl={mediaUrls.customBgVideoUrl}
+      customActivationVideoUrl={mediaUrls.customActivationVideoUrl}
       onActivateHand={handleActivateHand}
       onDeactivateHand={handleDeactivateHand}
+      onActivationVideoEnded={completeActivation}
     />
   );
 }

@@ -1,6 +1,7 @@
 # TÀI LIỆU ĐẶC TẢ YÊU CẦU PHẦN MỀM (SRS)
-**Dự án:** Ứng dụng Sân khấu LED — Nghi thức Kích hoạt Chuyển đổi số & Dịch vụ công Quốc gia  
-**Phiên bản tài liệu:** 1.0  
+**Dự án:** Studio Trình Diễn Sân Khấu LED 3D (`cham-tay-led-3d-studio`) — Nghi thức Chạm Tay Kích Hoạt Chuyển Đổi Số & Sự Kiện Khánh Tiết  
+**Phiên bản tài liệu:** 2.0  
+**Phiên bản phần mềm:** 2.0.0  
 **Ngày cập nhật:** 16/11/2026  
 **Tiêu chuẩn tham chiếu:** IEEE 830 / ISO/IEC/IEEE 29148  
 
@@ -9,102 +10,108 @@
 ## 1. Giới Thiệu
 
 ### 1.1 Mục đích
-Tài liệu này đặc tả đầy đủ các yêu cầu chức năng, phi chức năng, giao diện vận hành và ràng buộc kỹ thuật của hệ thống trình chiếu tương tác sân khấu LED phục vụ **Nghi thức Lãnh đạo Bấm nút / Chạm tay Kích hoạt Chuyển đổi số & Cổng Dịch vụ công**. Tài liệu là cơ sở thống nhất giữa Ban tổ chức sự kiện, Đạo diễn sân khấu, Kỹ thuật viên vận hành và Nhóm phát triển/bảo trì phần mềm.
+Tài liệu này đặc tả đầy đủ các yêu cầu chức năng, phi chức năng, kiến trúc giao diện hai cửa sổ (Studio & Stage), mô hình dữ liệu và ràng buộc kỹ thuật của hệ thống **Studio Trình Diễn LED 3D** phục vụ **Nghi thức Lãnh đạo Chạm tay / Bấm nút Kích hoạt Chuyển đổi số, Dịch vụ công và Lễ Khai mạc**. Tài liệu là cơ sở thống nhất giữa Ban tổ chức sự kiện, Đạo diễn sân khấu, Kỹ thuật viên vận hành AV/LED và Nhóm phát triển/bảo trì phần mềm.
 
 ### 1.2 Phạm vi sản phẩm
-Hệ thống là một ứng dụng web độc lập (Client-side Single Page Application) chạy trực tiếp trên trình duyệt web hiện đại (Google Chrome / Microsoft Edge) ở chế độ toàn màn hình (`F11`) trên màn hình LED sân khấu chính, hỗ trợ cả **màn hình cảm ứng đa điểm** và **điều khiển từ xa qua bàn kỹ thuật**.
+Hệ thống là một ứng dụng web đa trang (Multi-Page Client-Side Application) xây dựng trên **React 19, Vite 6, Tailwind CSS v4 và Three.js (WebGL + Post-processing Bloom)**, vận hành hoàn toàn phía trình duyệt (hỗ trợ cả Online và Offline) với kiến trúc **2 cửa sổ tách biệt đồng bộ thời gian thực**:
 
-Các thành phần chính thuộc phạm vi hệ thống:
-- Sân khấu trình chiếu LED (`#stage`) gồm lớp video nền, lớp Canvas hạt & hiệu ứng pháo/hào quang, tâm năng lượng Trống Đồng Đông Sơn (`#core-hologram`), dãy bục chạm tay lãnh đạo (`#touch-zones`) và màn hình Vinh danh (`#celebration-screen`).
-- Hệ thống tổng hợp âm thanh sự kiện thời gian thực bằng Web Audio API (`StateCeremonyAudio`) không phụ thuộc tệp âm thanh rời.
-- Bảng điều hành kỹ thuật 4 Tab (`#control-panel`) cho phép hiệu chỉnh trực tiếp tại hiện trường và lưu cấu hình tự động vào `localStorage`.
+1. **Cửa sổ Điều Hành — Studio (`index.html` → `src/studio/`)**:
+   - Giao diện chọn 5 mẫu sân khấu 3D (`PatternGrid`), thanh điều khiển nhanh màn hình LED (`RemoteBar`), và không gian thiết lập trước giờ G kèm màn hình Demo 3D trực tiếp (`SetupWorkspace`).
+2. **Cửa sổ Trình Chiếu — LED Stage (`stage.html` → `src/stage/`)**:
+   - Cửa sổ trình chiếu toàn màn hình (`1920×1080` hoặc theo độ phân giải màn LED), hiển thị nền video/YouTube, không gian WebGL 3D (`ThreeStage`), dãy bục chạm đa điểm (`TouchPods`), hiệu ứng đếm ngược/video kích hoạt và màn hình Vinh danh (`Celebration`).
+3. **Lớp Dùng Chung (`src/shared/`)**:
+   - Lưu trữ cấu hình & đồng bộ đa cửa sổ (`ceremonyStore.js`), lưu trữ tệp media nhị phân (`mediaStorage.js`), danh mục mẫu 3D (`patterns.js`), và bộ tổng hợp âm thanh Web Audio API (`audioEngine.js`).
+
+> **Ghi chú di sản (Legacy):** Phiên bản v1.0 thuần HTML/CSS/JS (Zero-Build) được lưu trữ tại thư mục `legacy/` (và một số tệp gốc cũ `app.js`, `styles.css`). Phiên bản hiện hành v2.0.0 sử dụng mã nguồn trong `src/` và đóng gói ra `dist/`.
 
 ### 1.3 Đối tượng sử dụng
 | Vai trò | Mô tả tương tác |
 | :--- | :--- |
-| **Lãnh đạo / Đại biểu** | Tiến lên sân khấu, đặt bàn tay lên các bục trống đồng mạ vàng (trên màn LED cảm ứng) hoặc thực hiện động tác chạm tượng trưng theo hiệu lệnh MC. |
-| **MC / Đạo diễn sự kiện** | Điều phối nhịp đếm ngược `5 - 4 - 3 - 2 - 1` và thời điểm chụp ảnh lưu niệm (Photo-Op) trên nền màn hình Vinh danh. |
-| **Kỹ thuật viên Sân khấu (AV/LED)** | Vận hành bảng điều khiển (`H`), kích hoạt dự phòng (`SPACE`), reset (`R`), cân chỉnh vị trí bục chạm/tâm core, hiệu chuẩn độ sáng chống cháy sáng mặt khi chụp ảnh, kiểm tra âm lượng mixer và nguồn video nền. |
+| **Lãnh đạo / Đại biểu** | Tiến lên sân khấu, đặt bàn tay lên các bục chạm hiển thị trên màn LED cảm ứng (hoặc thực hiện động tác chạm tượng trưng theo hiệu lệnh MC). |
+| **MC / Đạo diễn sự kiện** | Điều phối nhịp đếm ngược (`3s / 5s / 7s`), kiểm tra khung hình Demo trước giờ G trên `SetupWorkspace`, và điều phối thời điểm chụp ảnh lưu niệm (Photo-Op) trên màn hình Vinh danh. |
+| **Kỹ thuật viên Sân khấu (AV/LED)** | Mở cửa sổ Studio trên màn hình laptop điều khiển, thiết lập mẫu/logo/video/bục chạm, mở cửa sổ Stage (`stage.html`) kéo sang màn hình LED mở rộng và bật `F11`, điều khiển qua `RemoteBar` hoặc phím tắt (`Space`, `R`, `M`, `F11`). |
 
 ### 1.4 Thuật ngữ và Viết tắt
-- **LED Stage**: Màn hình LED khổ lớn trung tâm sân khấu.
-- **Key Moment**: Khoảnh khắc cao trào đếm ngược `5 - 4 - 3 - 2 - 1` chuyển sang bùng nổ kích hoạt.
-- **Photo-Op**: Thời điểm các đồng chí Lãnh đạo đứng trước màn hình Vinh danh để báo chí và nhiếp ảnh gia tác nghiệp.
-- **Overscan**: Kỹ thuật phóng đại khung hình video YouTube (`youtube-player-wrap`) vượt kích thước khung nhìn để loại bỏ thanh tiêu đề, nút chia sẻ và logo YouTube khỏi vùng hiển thị LED.
+- **Studio (`index.html`)**: Cửa sổ điều hành dành cho kỹ thuật viên, không hiển thị lên màn LED chính.
+- **Stage (`stage.html`)**: Cửa sổ trình chiếu sạch tuyệt đối dành cho màn hình LED sân khấu.
+- **Key Moment**: Khoảnh khắc cao trào đếm ngược (`5 - 4 - 3 - 2 - 1` hoặc `3s` / `7s`) hoặc phát video kích hoạt trước khi bùng nổ chuyển sang màn hình Vinh danh.
+- **Photo-Op**: Thời điểm các đại biểu đứng trước màn hình Vinh danh để báo chí và nhiếp ảnh gia chụp ảnh lưu niệm.
+- **Overscan**: Kỹ thuật phóng đại khung hình YouTube Iframe (`130%`, lệch `-15%`) để loại bỏ thanh tiêu đề và nút điều khiển khỏi vùng hiển thị LED.
 
 ---
 
 ## 2. Mô Tả Tổng Quan
 
-### 2.1 Bối cảnh vận hành
-- **Chế độ trực tuyến (Online)**: Tải video nền Trống Đồng từ YouTube Iframe API (mặc định ID `sbDz4hoZWCk`) với cơ chế tự động chuyển về nguồn an toàn khi video gặp lỗi nhúng.
-- **Chế độ ngoại tuyến (Offline)**: Mở trực tiếp tệp `index.html` trên máy tính bàn điều hành; sử dụng tệp video MP4 nội bộ (ví dụ: `Background Trống Đồng Bản Đồ Việt Nam - I Love Viet Nam - YouTube.mp4`), toàn bộ đồ họa SVG, Canvas 2D và âm thanh Web Audio chạy nội bộ 100% không cần Internet.
+### 2.1 Kiến trúc công nghệ & Bối cảnh vận hành
+- **Nền tảng kỹ thuật**:
+  - **React 19.1.0** & **React DOM 19.1.0**
+  - **Vite 6.3.5** (Multi-page build với `base: './'`, đầu vào `studio: index.html` và `stage: stage.html`, đầu ra `dist/`)
+  - **Tailwind CSS 4.1.6** (`@tailwindcss/vite`)
+  - **Three.js 0.176.0** (`WebGLRenderer`, `ACESFilmicToneMapping`, `EffectComposer`, `RenderPass`, `UnrealBloomPass`, `OutputPass`)
+  - **Lucide React 0.511.0** (Biểu tượng giao diện)
+- **Vận hành Trực tuyến (Online)**: Hỗ trợ nhúng video nền từ YouTube (`youtubeVideoId`, mặc định `sbDz4hoZWCk`).
+- **Vận hành Ngoại tuyến (Offline)**: Chạy ổn định qua máy chủ nội bộ (`vite preview` / static server) với tệp video MP4 mặc định (`./Background Trống Đồng Bản Đồ Việt Nam - I Love Viet Nam - YouTube.mp4`) hoặc video/ảnh do người dùng tải lên lưu trong **IndexedDB**, kết hợp đồ họa WebGL 3D và âm thanh Web Audio API nội bộ 100%.
 
-### 2.2 Ràng buộc thiết kế & Quy chuẩn thẩm mỹ
-- **Công nghệ thuần (Zero-Build)**: Chỉ sử dụng HTML5, CSS3 và Vanilla JavaScript ES6 (`index.html`, `styles.css`, `app.js`), không phụ thuộc framework hay công cụ đóng gói ngoài.
-- **Thẩm mỹ Lễ tân Nhà nước**: Tông màu chủ đạo **Đỏ Lễ Tiết & Vàng Kim Hoàng Gia** (hoặc tùy chọn **Xanh Dịch Vụ Công & Vàng Đồng**), họa tiết Trống Đồng Đông Sơn, Ngôi sao vàng và đường nét kiến trúc đô thị thông minh (`#city-skyline`).
-- **Sạch sẽ tuyệt đối khi trình chiếu**: Ẩn toàn bộ giao diện kỹ thuật khi nhấn `H`; ẩn toàn bộ bục chạm, tâm nạp và tiêu đề phụ khi chuyển sang màn hình Vinh danh (`body.in-celebration`).
+### 2.2 Quy chuẩn thẩm mỹ & Phân lớp hiển thị
+- **5 Chủ đề 3D chuyên biệt** phục vụ đa dạng bối cảnh (Lễ tân Nhà nước Đỏ-Vàng Trống Đồng, Công nghệ cao Cyan-Xanh dương, Đô thị thông minh, Lõi pha lê, và Mẫu tự thiết kế).
+- **Sạch sẽ tuyệt đối trên Stage**: Cửa sổ `stage.html` không chứa bất kỳ thanh công cụ điều khiển nào; khi bước vào pha `celebration`, khối 3D trung tâm tự thu nhỏ biến mất (`scale -> 0.001`), `TouchPods` và `Header` bị ẩn để giữ khung hình Photo-Op thoáng sạch.
 
 ---
 
 ## 3. Yêu Cầu Chức Năng (Functional Requirements)
 
-### FR-01: Trạng thái Chờ (Standby) & Tiêu đề Sự kiện
-- **FR-01.1**: Khi mới khởi động hoặc sau khi Reset (`R`), hệ thống phải ở trạng thái chờ sạch sẽ (`body` không có class `charging` và `in-celebration`).
-- **FR-01.2**: Ở chế độ Key Moment (`animationStyle = 'keymoment'`), tâm Trống Đồng phải ẩn số đếm ngược (`.countdown-big-number`) và hiển thị biểu trưng **Ngôi sao Trống Đồng Đông Sơn** (`.countdown-standby-star`).
-- **FR-01.3**: Tiêu đề sự kiện ở phần đầu trang (`header`) mặc định ở trạng thái ẩn (`state.showHeader = false`) để ưu tiên trình chiếu nền Trống Đồng thoáng rộng; kỹ thuật viên có thể bật/tắt qua công tắc `#toggle-show-header` trong Tab 4.
+### FR-01: Quản Lý Mẫu Sân Khấu 3D (`PATTERNS` & `ThreeStage`)
+- **FR-01.1**: Hệ thống cung cấp **5 mẫu sân khấu 3D** định nghĩa trong `src/shared/patterns.js`:
+  1. `dong-son`: **Trống Đồng Hoàng Gia 3D** (3 vòng đồng tâm, đĩa lõi, 12 tia Mặt Trời Lạc Việt, vòng quỹ đạo; tông Vàng Kim `#f5c542` & Đỏ `#b91c1c`).
+  2. `holo-globe`: **Quả Cầu Số Hologram 3D** (Khối đa diện wireframe `IcosahedronGeometry`, lõi cầu phát sáng, 2 vòng xích đạo; tông Cyan `#38bdf8` & Xanh dương `#0369a1`).
+  3. `smart-city`: **Đô Thị Thông Minh 3D** (Cụm 7 tòa tháp kèm khung dây trên bệ đĩa nổi và vòng hào quang; tông Vàng `#fbbf24` & Xanh `#1d4ed8`).
+  4. `crystal-core`: **Lõi Pha Lê Năng Lượng 3D** (Khối bát diện kim loại `OctahedronGeometry`, lồng wireframe và 3 vòng từ trường vuông góc; tông Vàng hổ phách `#f59e0b` & Tím `#4c1d95`).
+  5. `custom-ceremony`: **Tự Thiết Kế Mẫu Lễ Khai Mạc** (`isCustom: true`, tối ưu cho ảnh bàn tay và video trình chiếu riêng).
+- **FR-01.2**: Khi chọn mẫu trên `PatternGrid`, `applyPatternDefaults()` tự động cập nhật `patternId` cùng bộ chữ mặc định (`eventBadge`, `eventTitle`, `eventSubtitle`, `celebrationTitle`, `celebrationDesc`) và đồng bộ ngay sang Stage.
+- **FR-01.3**: `ThreeStage` dựng sân khấu WebGL gồm: sương mù `FogExp2`, lưới sàn `GridHelper` (36×36), hệ thống đèn (`AmbientLight` + 2 `PointLight`), trường hạt `1.600` điểm chuyển động theo pha, hiệu ứng parallax theo con trỏ chuột và hậu kỳ `UnrealBloomPass`.
 
-### FR-02: Tương tác Bục Chạm Tay & Kích hoạt Dự phòng
-- **FR-02.1**: Hệ thống sinh động từ **1 đến 12 bục chạm** (`state.handCount`, mặc định `5`) trong `#touch-zones`, hỗ trợ sự kiện chạm đa điểm (`touchstart`/`touchend`) và chuột (`mousedown`/`mouseup`).
-- **FR-02.2**: Khi một bục được chạm, gọi `activateHand(id)`, phát âm thanh chạm khánh tiết (`playTouchChime()`) và phát tia năng lượng hướng tâm.
-- **FR-02.3**: Khi toàn bộ bục đang hiển thị cùng được chạm (`activeHands.size >= handCount`) hoặc khi kỹ thuật viên nhấn phím `SPACE` / nút **Kích hoạt Tất cả** (`#btn-trigger-all`), hệ thống chuyển ngay sang trạng thái nạp nghi thức (`startChargingProcess()`).
+### FR-02: Kiến Trúc Hai Cửa Sổ & Đồng Bộ Thời Gian Thực
+- **FR-02.1**: Từ Studio (`App.jsx`), người dùng nhấn **Trình chiếu Sân khấu** để mở `stage.html` trong cửa sổ riêng (`LED_STAGE_WINDOW`).
+- **FR-02.2**: Giao tiếp hai chiều qua `BroadcastChannel('cham_tay_stage_sync_v2')` kết hợp sự kiện `storage` của trình duyệt:
+  - **Studio → Stage**: `CONFIG_UPDATE` (cập nhật cấu hình tức thì), `MEDIA_UPDATED` (tải lại blob media từ IndexedDB), `CMD_START` (bắt đầu kích hoạt), `CMD_RESET` (đưa về chờ), `CMD_PREVIEW_CELEBRATION` (mở nhanh màn Vinh danh), `CMD_TEST_AUDIO` (phát thử nhạc Fanfare).
+  - **Stage → Studio**: `STAGE_PHASE` thông báo trạng thái hiện tại (`standby` | `charging` | `celebration`) lên `RemoteBar`.
 
-### FR-03: Hai Chế Độ Hoạt Ảnh Trung Tâm
-- **FR-03.1 (Chế độ `keymoment` — Mặc định)**: Trong suốt thời gian `state.chargeDuration` (3000ms / 5000ms / 7000ms), thêm class `body.charging`, ẩn `.countdown-standby-star`, hiển thị `.countdown-big-number` đếm ngược theo giây từ `5` về `1` (hoặc tương ứng theo `chargeDuration`) đồng bộ với âm thanh `playCountdownBeep(sec)`.
-- **FR-03.2 (Chế độ `liquid`)**: Dâng mức năng lượng lỏng vàng kim từ `0%` đến `100%` bên trong `#liquid-vessel` với 2 lớp sóng (`#liquid-wave-back`, `#liquid-wave-front`).
-- **FR-03.3**: Nếu người dùng buông tay trước khi hoàn thành (khi kích hoạt bằng chạm thực tế), `cancelChargingProcess()` phải hủy tiến trình, gỡ class `body.charging` và đưa tâm về trạng thái chờ ban đầu.
+### FR-03: Không Gian Thiết Lập & Demo Trực Tiếp (`SetupWorkspace`)
+- **FR-03.1**: Cửa sổ `SetupWorkspace` chia làm 2 phần: khung **Demo 3D trực tiếp** (`StageViewport` với `isPreview={true}` tỷ lệ 16:9 co giãn từ khung chuẩn `1920×1080`) cho phép chuyển nhanh 3 pha (`standby`, `charging`, `celebration`) hoặc bấm thử nghi thức ngay trên màn hình cấu hình; và bảng điều chỉnh **4 Tab**:
+  - **Tab 1 (`custom` — Tay & Video)**: Tải ảnh bàn tay chạm tùy chỉnh, chọn màu phát sáng (`#f5c542`, `#38bdf8`, `#ef4444`, `#ffffff` hoặc bảng màu), chọn nguồn video nền (`local`, `youtube`, `none`), tải video nền MP4 và video kích hoạt tùy chỉnh.
+  - **Tab 2 (`celebration` — Vinh Danh)**: Tùy chỉnh tông màu Vinh danh (`match-pattern`, `royal-gold`, `tech-cyan`), dải ruy-băng (`celebrationRibbon`), tiêu đề chính, khẩu hiệu, tải Logo đơn vị (`customLogoData`) & chỉnh kích thước Logo (`72px` – `220px`), bật/tắt và chỉnh sửa 3 Trụ cột (`celebrationPillars`), bật/tắt Header đầu trang (`showHeader`) cùng nội dung `eventBadge`, `eventTitle`, `eventSubtitle`.
+  - **Tab 3 (`pods` — Bục & 3D)**: Chỉnh số lượng bục (`1` – `12`), thời gian đếm ngược (`3s`, `5s`, `7s`), độ cao bục `podY` (`-200px` – `60px`), kích thước bục `podSize` (`70px` – `180px`), khoảng cách `podGap` (`10px` – `100px`), tỷ lệ khối 3D `coreScale` (`0.6x` – `1.6x`), độ cao khối 3D `coreY` (`-150px` – `150px`), bật/tắt nhãn tên (`showPodLabels`) và sửa nhãn từng đại biểu (`podLabels`).
+  - **Tab 4 (`stage` — Sáng & Loa)**: Chỉnh độ rõ video nền `videoOpacity` (`15%` – `100%`), độ sáng màn LED `screenBrightness` (`45%` – `100%`, mặc định `76%`), công tắc tự dịu sáng khi Vinh danh `autoPhotoOpDim`, âm lượng tổng `masterVolume` (`0%` – `100%`), tắt tiếng gốc video kích hoạt `activationVideoMuted`, và nút thử âm thanh.
 
-### FR-04: Cao Trào Mở Khóa & Màn Hình Vinh Danh (Celebration / Photo-Op)
-- **FR-04.1**: Khi tiến độ đạt `100%`, `completeActivation()` kích hoạt chớp sáng vàng kim (`#climax-flash`), sóng xung kích (`StateShockwave`), pháo hoa/kim tuyến vàng (`triggerStageFirework`, `triggerStateExplosion`, `GoldConfettiParticle`) và phát khúc nhạc kèn đồng (`playFanfare()`).
-- **FR-04.2**: Kích hoạt class `body.in-celebration` và hiển thị `#celebration-screen`. Ở trạng thái này, CSS tự động ẩn Header, `#core-hologram`, `#touch-zones` và `#city-skyline` để chỉ còn **nền Trống Đồng + nội dung Vinh danh**.
-- **FR-04.3**: Màn hình Vinh danh hiển thị: Biểu trưng mặc định (`#celeb-default-logo`) hoặc Logo đơn vị tải lên (`#celeb-custom-logo`), dải Ribbon, Tiêu đề chính (`#celeb-title`), Khẩu hiệu (`#celeb-desc`) và 3 Trụ cột Chuyển đổi số (Chính quyền số, Kinh tế số, Xã hội số).
-- **FR-04.4**: Hỗ trợ nút **Xem Màn Vinh Danh** (`#btn-preview-finale`) ở Tab 1 để đạo diễn kiểm tra nhanh khung hình Photo-Op mà không cần chờ đếm ngược.
+### FR-04: Tương Tác Bục Chạm Tay (`TouchPods`) & Luồng Nạp Nghi Thức
+- **FR-04.1**: `TouchPods` hiển thị từ `1` đến `12` bục chạm (mặc định `5`), hỗ trợ cảm ứng đa điểm (`touchstart`/`touchend`/`touchcancel`) và chuột (`mousedown`/`mouseup`/`mouseleave`). Khi số bục > 6 tự thu tỷ lệ `0.88`, khi > 8 tự thu `0.78`.
+- **FR-04.2**: Mỗi bục hỗ trợ hiển thị biểu tượng mặc định (`Fingerprint`) hoặc ảnh bàn tay tải lên (`customHandImageUrl`) kèm hiệu ứng phát sáng theo `handGlowColor` và nhãn tên bên dưới.
+- **FR-04.3**: Khi một bục được chạm ở pha `standby`, `StageApp` phát âm thanh `playTouchChime()`. Khi đủ toàn bộ số bục (`activeHands.size >= config.handCount`), hệ thống tự động chuyển sang pha `charging` (`startCharging(false)`).
+- **FR-04.4**: Nếu kích hoạt bằng chạm thực tế (`!manualLockedRef.current`) mà người dùng buông tay trước khi hoàn thành, `handleDeactivateHand()` gọi `resetStage()` đưa sân khấu về trạng thái `standby`. Nếu kích hoạt bằng phím `Space` hoặc `CMD_START` (`manualLockedRef.current = true`), tiến trình chạy tự động đến hết thời lượng.
+- **FR-04.5**: Trong pha `charging`:
+  - Nếu **không có** video kích hoạt tùy chỉnh: Hiển thị số đếm ngược 3D (`countdownSec`) với hiệu ứng `animate-count-pop`, đồng bộ âm thanh `playCountdownBeep(sec)`, trường hạt 3D hút dần vào tâm và tăng cường độ `UnrealBloomPass`.
+  - Nếu **có** video kích hoạt tùy chỉnh (`customActivationVideoUrl`): Ẩn khối 3D trung tâm (`hideCenterpiece={true}`) và ẩn số đếm ngược, phát video kích hoạt toàn màn hình ở lớp `z-20`; khi video kết thúc (`onEnded`) gọi `completeActivation()`.
 
-### FR-05: Hệ Thống Âm Thanh Sân Khấu (`StateCeremonyAudio`)
-- **FR-05.1**: Sử dụng Web Audio API với nút âm lượng tổng `masterGain` điều chỉnh qua `#range-volume` (`0` – `1.0`, mặc định `0.8`).
-- **FR-05.2**: Hỗ trợ bật/tắt tiếng nhanh bằng phím `M` hoặc nút `#btn-audio-toggle`, và nút thử âm thanh `#btn-test-audio` để cân chỉnh mixer hội trường trước giờ G.
+### FR-05: Màn Hình Vinh Danh (Celebration / Photo-Op)
+- **FR-05.1**: Khi hoàn thành pha nạp, `completeActivation()` bật chớp sáng `flashActive` (chuyển pha sau `320ms` trong `StageApp`), phát nhạc kèn đồng `playFanfare()` và chuyển sang pha `celebration`.
+- **FR-05.2**: `Celebration` hiển thị Logo đơn vị (hoặc huy hiệu `Award` mặc định), dải Ribbon, Tiêu đề 3D ánh kim (`gold-3d-text` hoặc `cyan-3d-text`), Khẩu hiệu và 3 thẻ Trụ cột (nếu `showCelebrationPillars !== false`).
+- **FR-05.3**: Nếu bật `autoPhotoOpDim` (mặc định `true`), độ sáng sân khấu tại pha `celebration` được giới hạn tối đa ở mức `72%` (`Math.min(config.screenBrightness, 72)`) để chống lóa/cháy sáng mặt đại biểu khi chụp ảnh.
 
-### FR-06: Quản Lý Video Nền & Cơ Chế Dự Phòng Lỗi
-- **FR-06.1**: Hỗ trợ 2 nguồn video trong `#video-bg-container`: **YouTube** (`src-youtube`, mặc định `sbDz4hoZWCk`) và **Tệp MP4 nội bộ** (`src-local`, `#input-local-video`).
-- **FR-06.2**: Tự động trích xuất Video ID từ URL YouTube bất kỳ (`extractYouTubeId()`).
-- **FR-06.3**: Khi YouTube Iframe API trả về mã lỗi `101`, `150` (chủ sở hữu tắt nhúng) hoặc `2` (ID không hợp lệ), `initYouTubePlayer()` phải tự động chuyển về ID dự phòng an toàn `sbDz4hoZWCk` và cập nhật lại `localStorage`.
-- **FR-06.4**: Cho phép bật/tắt video nền (`#toggle-video-bg`), chỉnh độ mờ video (`#range-opacity`) và độ phủ tối (`#range-tint`).
+### FR-06: Quản Lý Video Nền & Media Tùy Chỉnh
+- **FR-06.1**: Hỗ trợ 3 chế độ nền: `'local'` (video tải lên hoặc tệp MP4 mặc định), `'youtube'` (tự trích xuất ID qua `extractYouTubeId()` và nhúng chế độ Overscan `130%`), hoặc `'none'` (chỉ dùng nền WebGL 3D).
+- **FR-06.2**: Ảnh bàn tay (`customHandImage`), video nền (`customBgVideo`) và video kích hoạt (`customActivationVideo`) được lưu dạng Blob trong **IndexedDB** (`cham_tay_media_db`, object store `media_blobs`) để vượt giới hạn dung lượng của `localStorage`.
 
-### FR-07: Bảng Điều Hành Kỹ Thuật 4 Tab & Phím Tắt
-- **FR-07.1 (Phím tắt toàn cục)**:
-  - `SPACE`: Bắt đầu nghi thức (`triggerAllHands()`).
-  - `R`: Reset toàn bộ trạng thái về màn hình chờ (`resetActivation()`).
-  - `H`: Ẩn / Hiện bảng điều khiển (`toggleControlPanel()`).
+### FR-07: Hệ Thống Âm Thanh (`StateCeremonyAudio`) & Phím Tắt Sân Khấu
+- **FR-07.1**: Tổng hợp âm thanh thời gian thực bằng Web Audio API (`AudioContext` + `masterGain`) với 3 hiệu ứng: `playTouchChime()`, `playCountdownBeep(num)` (sub-bass + chuông), và `playFanfare()` (hợp âm kèn đồng sawtooth qua bộ lọc lowpass).
+- **FR-07.2**: Phím tắt trực tiếp trên cửa sổ Stage (`StageApp.jsx`):
+  - `Space`: Bắt đầu kích hoạt khi đang ở pha `standby`.
+  - `R`: Reset sân khấu về `standby`.
+  - `M`: Bật / Tắt âm thanh (`audioEnabled`) và lưu cấu hình.
   - `F11`: Bật / Tắt toàn màn hình trình duyệt.
-  - `M`: Bật / Tắt âm thanh.
-- **FR-07.2 (Tab 1 — Điều hành `#tab-control`)**: Chứa các nút Kích hoạt, Reset, Fullscreen, Mixer âm lượng + Test âm thanh, Xem màn vinh danh, và **Ghi hình Video Canvas** (`#btn-export-video` dùng `MediaRecorder` xuất tệp `.webm` 1920×1080 @ 60fps).
-- **FR-07.3 (Tab 2 — Vị trí & Kích thước `#tab-position`)**:
-  - Điều chỉnh số lượng đại biểu (`1` – `12` bục).
-  - Điều chỉnh vị trí cao/thấp (`#range-pod-y`), kích thước đường kính (`#range-pod-size`), khoảng cách (`#range-pod-gap`) của bục chạm và nút đặt lại (`#btn-reset-position`).
-  - Điều chỉnh độ cao (`#range-core-y`) và tỷ lệ phóng to/thu nhỏ (`#range-core-scale`) của Tâm năng lượng & đồng hồ đếm ngược kèm nút đặt lại (`#btn-reset-core-position`).
-- **FR-07.4 (Tab 3 — Video nền & Độ sáng LED `#tab-video`)**:
-  - Hiệu chuẩn độ sáng màn LED (`#range-brightness`: 40%–100%, mặc định `72%` chống cháy sáng mặt khi chụp ảnh) và các preset nhanh (`#group-brightness-preset`).
-  - Công tắc **Tự động cân bằng sáng khi mở khóa** (`#toggle-photo-dim`) đưa độ sáng về mức dịu tối ưu lúc Photo-Op.
-  - Chọn nguồn video YouTube / MP4 nội bộ, preset video nhanh (`#btn-preset-dongson`, `#btn-preset-keymoment`).
-- **FR-07.5 (Tab 4 — Cấu hình sự kiện `#tab-settings`)**:
-  - Chọn tông màu Nhà nước (`#group-theme-color`: Đỏ & Vàng Kim hoặc Xanh DVC & Vàng Đồng).
-  - Chọn kiểu hoạt ảnh trung tâm (`#group-animation-style`: `keymoment` hoặc `liquid`).
-  - Chọn thời gian nạp (`#select-duration`: 3s, 5s, 7s).
-  - Tùy chỉnh nội dung chữ (`#input-badge`, `#input-title`, `#input-subtitle`), ẩn/hiện header (`#toggle-show-header`), và tải Logo đơn vị PNG (`#input-logo`).
 
-### FR-08: Lưu Trữ Bền Vững & Tự Động Di Trú Cấu Hình
-- **FR-08.1**: Mọi tham số cấu hình sân khấu (`handCount`, `podY`, `podSize`, `podGap`, `coreY`, `coreScale`, `masterVolume`, `screenBrightness`, `autoPhotoOpDim`, `animationStyle`, `showHeader`, `youtubeVideoId`, `customLogoData`) phải được lưu trong `localStorage` để giữ nguyên sau khi tải lại trang (`F5`).
-- **FR-08.2**: Khi khởi tạo, nếu `localStorage.getItem('youtubeVideoId') === 'qyW8818wHhA'` (ID cũ bị chặn nhúng), hệ thống tự động di trú sang `'sbDz4hoZWCk'`.
+### FR-08: Lưu Trữ Cấu Hình & Di Trú Tự Động
+- **FR-08.1**: Toàn bộ cấu hình văn bản, vị trí, độ sáng, âm lượng và ảnh Logo (`customLogoData`) được lưu bền vững trong `localStorage` dưới khóa `cham_tay_studio_config_v2`.
+- **FR-08.2**: Khi tải cấu hình (`loadConfig()`), nếu phát hiện `youtubeVideoId === 'qyW8818wHhA'`, hệ thống tự động di trú sang `'sbDz4hoZWCk'`.
 
 ---
 
@@ -112,24 +119,23 @@ Các thành phần chính thuộc phạm vi hệ thống:
 
 | Mã | Nhóm | Yêu cầu chi tiết |
 | :--- | :--- | :--- |
-| **NFR-01** | Hiệu năng | Vòng lặp đồ họa Canvas (`renderBg`, `renderFX`) vận hành mượt mà ở mức ~60fps trên độ phân giải Full HD (1920×1080), tự co giãn theo kích thước cửa sổ (`resizeCanvases()`). |
-| **NFR-02** | Khả năng chạy Offline | Không phụ thuộc CDN bắt buộc cho logic lõi; hoạt động đầy đủ khi mở bằng giao thức `file://` hoặc web server nội bộ với nguồn video MP4 dự phòng. |
-| **NFR-03** | Độ tin cậy sự kiện | Có cơ chế fallback tự động cho YouTube Iframe error (`101`, `150`, `2`), phím tắt `SPACE` dự phòng trường hợp màn LED không hỗ trợ cảm ứng đa điểm, và `R` khôi phục tức thì dưới 1 giây. |
-| **NFR-04** | Khả năng bảo trì | Tách biệt rõ cấu trúc DOM (`index.html`), giao diện & biến CSS (`styles.css`), và logic trạng thái/âm thanh/đồ họa (`app.js`). |
-| **NFR-05** | Tương thích | Hoạt động ổn định trên Google Chrome và Microsoft Edge phiên bản mới nhất trên Windows. |
+| **NFR-01** | Hiệu năng đồ họa | Vòng lặp `ThreeStage` (`requestAnimationFrame`) vận hành mượt ở ~60fps với `1.600` hạt 3D và hậu kỳ `UnrealBloomPass`, tự giới hạn `devicePixelRatio` tối đa `2` và tự cập nhật kích thước khi thay đổi khung nhìn. |
+| **NFR-02** | Khả năng chạy Offline | Không phụ thuộc tài nguyên CDN bên ngoài cho giao diện, đồ họa 3D và âm thanh; chạy hoàn chỉnh trên mạng nội bộ hoặc localhost với video MP4 offline và IndexedDB. |
+| **NFR-03** | Độ tin cậy vận hành | Tách biệt cửa sổ điều hành (Studio) và trình chiếu (Stage); hỗ trợ kích hoạt dự phòng bằng phím `Space` hoặc nút `RemoteBar` nếu màn LED không hỗ trợ cảm ứng đa điểm; `R` khôi phục tức thì về trạng thái chờ. |
+| **NFR-04** | Khả năng bảo trì | Tách module rõ ràng theo 3 miền: `src/shared/` (trạng thái, media, âm thanh, mẫu), `src/studio/` (điều hành & thiết lập), `src/stage/` (trình chiếu LED & WebGL 3D). |
+| **NFR-05** | Tương thích | Hoạt động ổn định trên Google Chrome và Microsoft Edge phiên bản mới nhất (hỗ trợ WebGL, Web Audio API, `BroadcastChannel` và `IndexedDB`). |
 
 ---
 
 ## 5. Ma Trận Truy Vết Yêu Cầu (RTM)
 
-| Mã Yêu Cầu | Thành Phần DOM (`index.html`) | Xử Lý Logic (`app.js`) | Trạng Thái CSS (`styles.css`) |
+| Mã Yêu Cầu | Thành Phần Giao Diện | Xử Lý Logic & Trạng Thái | Dữ Liệu / Tài Nguyên |
 | :--- | :--- | :--- | :--- |
-| **FR-01** | `#countdown-standby-star`, `header` | `DOMContentLoaded`, `resetActivation()` | `.countdown-standby-star`, `body.header-visible` |
-| **FR-02** | `#touch-zones`, `#btn-trigger-all` | `renderTouchPedestals()`, `activateHand()`, `triggerAllHands()` | `.touch-pod`, `.touch-pod.active` |
-| **FR-03** | `#core-countdown-state`, `#countdown-big-number`, `#liquid-vessel` | `startChargingProcess()`, `cancelChargingProcess()`, `updateLiquidWave()` | `body.charging`, `.mode-keymoment`, `.mode-liquid` |
-| **FR-04** | `#celebration-screen`, `#climax-flash`, `#btn-preview-finale` | `completeActivation()`, `triggerStageFirework()`, `triggerStateExplosion()` | `body.in-celebration`, `#celebration-screen.visible` |
-| **FR-05** | `#range-volume`, `#btn-audio-toggle`, `#btn-test-audio` | `StateCeremonyAudio`, `updateVolumeSettings()` | `.btn-icon` |
-| **FR-06** | `#video-bg-container`, `#youtube-player`, `#local-video-player` | `initYouTubePlayer()`, `updateVideoBg()`, `extractYouTubeId()` | `.video-bg-layer`, `.youtube-overscan` |
-| **FR-07** | `#control-panel`, `#tab-control`, `#tab-position`, `#tab-video`, `#tab-settings` | `setupEventListeners()`, `applyPodSettings()`, `applyCoreSettings()`, `applyBrightnessSettings()` | `.control-panel`, `.panel-hidden` |
-| **FR-08** | Toàn bộ input cấu hình | `state`, `localStorage` get/set & auto-migration | — |
-
+| **FR-01** | `PatternGrid.jsx`, `ThreeStage.jsx` | `buildCenterpiece()`, `applyPatternDefaults()` | `src/shared/patterns.js` |
+| **FR-02** | `App.jsx`, `RemoteBar.jsx`, `StageApp.jsx` | `createSyncChannel()`, `onStorage` | `BroadcastChannel('cham_tay_stage_sync_v2')` |
+| **FR-03** | `SetupWorkspace.jsx`, `StageViewport.jsx` | 4 Tab cấu hình & Demo preview `1920×1080` | `DEFAULT_CONFIG` (`ceremonyStore.js`) |
+| **FR-04** | `TouchPods.jsx`, `StageViewport.jsx` | `handleActivateHand()`, `handleDeactivateHand()`, `startCharging()` | `activeHands`, `phase`, `chargeDuration` |
+| **FR-05** | `Celebration.jsx`, `StageViewport.jsx` | `completeActivation()`, `autoPhotoOpDim` | `celebrationTitle`, `celebrationPillars`, `customLogoData` |
+| **FR-06** | `StageViewport.jsx`, `SetupWorkspace.jsx` | `extractYouTubeId()`, `saveMediaBlob()`, `loadAllCustomMediaUrls()` | `IndexedDB('cham_tay_media_db')`, tệp MP4 mặc định |
+| **FR-07** | `StageApp.jsx`, `RemoteBar.jsx` | `StateCeremonyAudio`, `keydown` listener (`Space`, `R`, `M`, `F11`) | `src/shared/audioEngine.js` |
+| **FR-08** | `App.jsx`, `StageApp.jsx` | `loadConfig()`, `saveConfig()` | `localStorage('cham_tay_studio_config_v2')` |

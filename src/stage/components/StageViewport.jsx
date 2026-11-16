@@ -5,7 +5,8 @@ import Celebration from './Celebration';
 import { getPatternById } from '../../shared/patterns';
 import { extractYouTubeId } from '../../shared/ceremonyStore';
 
-const LOCAL_VIDEO_SRC = './Background Trống Đồng Bản Đồ Việt Nam - I Love Viet Nam - YouTube.mp4';
+const DEFAULT_LOCAL_VIDEO_SRC =
+  './Background Trống Đồng Bản Đồ Việt Nam - I Love Viet Nam - YouTube.mp4';
 
 function StageContent({
   config,
@@ -14,8 +15,12 @@ function StageContent({
   countdownSec,
   flashActive,
   activeHands,
+  customHandImageUrl,
+  customBgVideoUrl,
+  customActivationVideoUrl,
   onActivateHand,
   onDeactivateHand,
+  onActivationVideoEnded,
 }) {
   const pattern = getPatternById(config.patternId);
   const effectiveBrightness =
@@ -24,6 +29,10 @@ function StageContent({
       : config.screenBrightness;
 
   const ytId = extractYouTubeId(config.youtubeVideoId);
+  const bgVideoSrc = customBgVideoUrl || DEFAULT_LOCAL_VIDEO_SRC;
+  const isPlayingActivationVideo = Boolean(
+    phase === 'charging' && customActivationVideoUrl
+  );
 
   return (
     <div
@@ -34,32 +43,38 @@ function StageContent({
         transition: 'filter 0.5s ease',
       }}
     >
-      {/* Background Video Layer */}
-      {config.videoBgEnabled && config.videoSource === 'local' && (
-        <video
-          src={LOCAL_VIDEO_SRC}
-          autoPlay
-          loop
-          muted
-          playsInline
-          className="absolute inset-0 w-full h-full object-cover z-0 pointer-events-none"
-          style={{ opacity: config.videoOpacity }}
-        />
-      )}
-
-      {config.videoBgEnabled && config.videoSource === 'youtube' && (
-        <div
-          className="absolute inset-0 overflow-hidden z-0 pointer-events-none"
-          style={{ opacity: config.videoOpacity }}
-        >
-          <iframe
-            title="Video Nền YouTube"
-            src={`https://www.youtube.com/embed/${ytId}?autoplay=1&mute=1&controls=0&loop=1&playlist=${ytId}&playsinline=1&rel=0&showinfo=0`}
-            className="w-[130%] h-[130%] -ml-[15%] -mt-[15%] pointer-events-none"
-            allow="autoplay; encrypted-media"
+      {/* Standby / Ambient Background Video Layer */}
+      {!isPlayingActivationVideo &&
+        config.videoBgEnabled &&
+        (config.videoSource === 'local' || customBgVideoUrl) && (
+          <video
+            key={bgVideoSrc}
+            src={bgVideoSrc}
+            autoPlay
+            loop
+            muted
+            playsInline
+            className="absolute inset-0 w-full h-full object-cover z-0 pointer-events-none"
+            style={{ opacity: config.videoOpacity }}
           />
-        </div>
-      )}
+        )}
+
+      {!isPlayingActivationVideo &&
+        !customBgVideoUrl &&
+        config.videoBgEnabled &&
+        config.videoSource === 'youtube' && (
+          <div
+            className="absolute inset-0 overflow-hidden z-0 pointer-events-none"
+            style={{ opacity: config.videoOpacity }}
+          >
+            <iframe
+              title="Video Nền YouTube"
+              src={`https://www.youtube.com/embed/${ytId}?autoplay=1&mute=1&controls=0&loop=1&playlist=${ytId}&playsinline=1&rel=0&showinfo=0`}
+              className="w-[130%] h-[130%] -ml-[15%] -mt-[15%] pointer-events-none"
+              allow="autoplay; encrypted-media"
+            />
+          </div>
+        )}
 
       {/* Tint Overlay */}
       <div
@@ -74,7 +89,21 @@ function StageContent({
         progress={progress}
         coreY={config.coreY}
         coreScale={config.coreScale}
+        hideCenterpiece={isPlayingActivationVideo}
       />
+
+      {/* Custom Triggered Activation Video (Runs when Start / Touch completes) */}
+      {isPlayingActivationVideo && (
+        <video
+          key={`act-${customActivationVideoUrl}`}
+          src={customActivationVideoUrl}
+          autoPlay
+          muted={config.activationVideoMuted !== false}
+          playsInline
+          onEnded={onActivationVideoEnded}
+          className="absolute inset-0 w-full h-full object-cover z-20 pointer-events-none"
+        />
+      )}
 
       {/* Optional Header (Hidden by default & during celebration) */}
       {config.showHeader && phase !== 'celebration' && (
@@ -90,9 +119,8 @@ function StageContent({
             {config.eventBadge}
           </div>
           <h1
-            className={`text-4xl lg:text-5xl font-black uppercase tracking-wide ${
-              pattern.id === 'holo-globe' ? 'cyan-3d-text' : 'gold-3d-text'
-            }`}
+            className={`text-4xl lg:text-5xl font-black uppercase tracking-wide ${pattern.id === 'holo-globe' ? 'cyan-3d-text' : 'gold-3d-text'
+              }`}
           >
             {config.eventTitle}
           </h1>
@@ -102,21 +130,20 @@ function StageContent({
         </header>
       )}
 
-      {/* 3D Countdown Overlay during Charging */}
-      {phase === 'charging' && (
+      {/* 3D Countdown Overlay during Charging (when not replaced by custom activation video) */}
+      {phase === 'charging' && !isPlayingActivationVideo && (
         <div className="absolute inset-0 z-30 flex items-center justify-center pointer-events-none">
           <div
             key={countdownSec}
-            className={`text-[11rem] md:text-[13rem] font-black leading-none animate-count-pop ${
-              pattern.id === 'holo-globe' ? 'cyan-3d-text' : 'gold-3d-text'
-            }`}
+            className={`text-[11rem] md:text-[13rem] font-black leading-none animate-count-pop ${pattern.id === 'holo-globe' ? 'cyan-3d-text' : 'gold-3d-text'
+              }`}
           >
             {countdownSec}
           </div>
         </div>
       )}
 
-      {/* Touch Pedestals (Hidden during Celebration) */}
+      {/* Touch Pedestals (Glow brightly over video during charging, hidden during Celebration) */}
       <TouchPods
         handCount={config.handCount}
         podY={config.podY}
@@ -124,6 +151,11 @@ function StageContent({
         podGap={config.podGap}
         activeHands={activeHands}
         primaryColor={pattern.colors.primary}
+        glowColor={config.handGlowColor}
+        customHandImageUrl={customHandImageUrl}
+        showPodLabels={config.showPodLabels}
+        podLabels={config.podLabels}
+        isCharging={phase === 'charging'}
         visible={phase !== 'celebration'}
         onActivateHand={onActivateHand}
         onDeactivateHand={onDeactivateHand}
@@ -138,9 +170,8 @@ function StageContent({
 
       {/* Climax Transition Flash */}
       <div
-        className={`absolute inset-0 z-50 pointer-events-none transition-opacity duration-300 ${
-          flashActive ? 'opacity-90' : 'opacity-0'
-        }`}
+        className={`absolute inset-0 z-50 pointer-events-none transition-opacity duration-300 ${flashActive ? 'opacity-90' : 'opacity-0'
+          }`}
         style={{
           background: `radial-gradient(circle, #ffffff 0%, ${pattern.colors.accent} 60%, transparent 100%)`,
         }}
@@ -192,4 +223,3 @@ export default function StageViewport({ isPreview = false, ...props }) {
     </div>
   );
 }
-
