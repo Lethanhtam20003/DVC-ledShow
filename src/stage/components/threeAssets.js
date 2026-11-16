@@ -30,8 +30,14 @@ export function createGlowParticleTexture() {
  * Procedural Dong Son bronze drum face texture with 12-point Lac Viet star,
  * concentric geometric rings, sawtooth bands, and stylized Lac bird arcs.
  */
+/**
+ * Procedural Dong Son (Ngoc Lu) bronze drum face texture in golden filigree style
+ * with transparent background so motifs float cleanly in 3D space.
+ * Bands from center outward: 16-point Sun Star -> comb/circle bands ->
+ * ceremonial figures -> marching deer/birds -> 12 flying Lac birds -> multi-ring outer rim.
+ */
 export function createDongSonFaceTexture(primary, secondary, accent) {
-  const size = 1024;
+  const size = 2048;
   const canvas = document.createElement('canvas');
   canvas.width = size;
   canvas.height = size;
@@ -39,36 +45,33 @@ export function createDongSonFaceTexture(primary, secondary, accent) {
   const cx = size / 2;
   const cy = size / 2;
 
-  // Base metallic bronze-crimson radial gradient
-  const bg = ctx.createRadialGradient(cx, cy, 20, cx, cy, size * 0.49);
-  bg.addColorStop(0, accent);
-  bg.addColorStop(0.18, primary);
-  bg.addColorStop(0.55, secondary);
-  bg.addColorStop(1, '#1a0406');
-  ctx.fillStyle = bg;
-  ctx.fillRect(0, 0, size, size);
-
-  // Concentric engraved rings
-  const ringRadii = [110, 155, 210, 275, 345, 410, 465];
-  ringRadii.forEach((r, idx) => {
-    ctx.beginPath();
-    ctx.arc(cx, cy, r, 0, Math.PI * 2);
-    ctx.strokeStyle = idx % 2 === 0 ? accent : primary;
-    ctx.lineWidth = idx % 2 === 0 ? 4 : 2.5;
-    ctx.globalAlpha = 0.85;
-    ctx.stroke();
-  });
-
-  // 12-point central Lac Viet Sun Star
+  ctx.clearRect(0, 0, size, size);
   ctx.save();
   ctx.translate(cx, cy);
-  ctx.fillStyle = accent;
-  ctx.globalAlpha = 0.95;
+
+  const goldBright = accent || '#fde047';
+  const goldMain = primary || '#f5c542';
+  const goldDeep = '#d97706';
+
+  const drawRing = (r, width, color = goldMain, alpha = 0.95) => {
+    ctx.beginPath();
+    ctx.arc(0, 0, r, 0, Math.PI * 2);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width;
+    ctx.globalAlpha = alpha;
+    ctx.stroke();
+  };
+
+  // 1. Central 16-point radiant Sun Star + chevron fills between rays
+  const starPoints = 16;
+  const outerStarR = 235;
+  const innerStarR = 88;
+  ctx.fillStyle = goldBright;
+  ctx.globalAlpha = 0.96;
   ctx.beginPath();
-  const points = 12;
-  for (let i = 0; i < points * 2; i++) {
-    const r = i % 2 === 0 ? 115 : 44;
-    const a = (i / (points * 2)) * Math.PI * 2;
+  for (let i = 0; i < starPoints * 2; i++) {
+    const r = i % 2 === 0 ? outerStarR : innerStarR;
+    const a = (i / (starPoints * 2)) * Math.PI * 2;
     const x = Math.cos(a) * r;
     const y = Math.sin(a) * r;
     if (i === 0) ctx.moveTo(x, y);
@@ -77,15 +80,186 @@ export function createDongSonFaceTexture(primary, secondary, accent) {
   ctx.closePath();
   ctx.fill();
 
-  // Sawtooth geometric band
-  ctx.strokeStyle = primary;
-  ctx.lineWidth = 2.5;
-  ctx.globalAlpha = 0.78;
-  const teeth = 48;
+  // Hollow inner sun ring & center medallion
+  ctx.globalCompositeOperation = 'destination-out';
   ctx.beginPath();
-  for (let i = 0; i <= teeth; i++) {
-    const a = (i / teeth) * Math.PI * 2;
-    const r = i % 2 === 0 ? 235 : 258;
+  ctx.arc(0, 0, 62, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.globalCompositeOperation = 'source-over';
+  drawRing(64, 6, goldBright, 0.95);
+  drawRing(44, 4, goldMain, 0.8);
+
+  // V-shaped chevron fills between star rays
+  ctx.strokeStyle = goldMain;
+  ctx.lineWidth = 4;
+  ctx.globalAlpha = 0.85;
+  for (let i = 0; i < starPoints; i++) {
+    const a = ((i + 0.5) / starPoints) * Math.PI * 2;
+    ctx.save();
+    ctx.rotate(a);
+    ctx.beginPath();
+    ctx.moveTo(145, -16);
+    ctx.lineTo(185, 0);
+    ctx.lineTo(145, 16);
+    ctx.moveTo(175, -14);
+    ctx.lineTo(212, 0);
+    ctx.lineTo(175, 14);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // 2. Inner concentric rings + radial comb-teeth + tangential circle-dots
+  drawRing(252, 7, goldBright);
+  drawRing(272, 4, goldMain);
+
+  // Radial comb-tooth band (r = 276..312)
+  ctx.strokeStyle = goldMain;
+  ctx.lineWidth = 4;
+  ctx.globalAlpha = 0.88;
+  for (let i = 0; i < 120; i++) {
+    const a = (i / 120) * Math.PI * 2;
+    ctx.beginPath();
+    ctx.moveTo(Math.cos(a) * 276, Math.sin(a) * 276);
+    ctx.lineTo(Math.cos(a) * 312, Math.sin(a) * 312);
+    ctx.stroke();
+  }
+  drawRing(316, 5, goldBright);
+
+  // Tangential circle-dot band (r = 320..366)
+  ctx.strokeStyle = goldBright;
+  ctx.fillStyle = goldMain;
+  ctx.lineWidth = 3.5;
+  for (let i = 0; i < 48; i++) {
+    const a = (i / 48) * Math.PI * 2;
+    const rx = Math.cos(a) * 343;
+    const ry = Math.sin(a) * 343;
+    ctx.beginPath();
+    ctx.arc(rx, ry, 14, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(rx, ry, 4.5, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  drawRing(370, 6, goldMain);
+  drawRing(386, 4, goldBright);
+
+  // 3. Ceremonial figures & feathered dancers / pavilion band (r = 398..520)
+  const figCount = 24;
+  for (let i = 0; i < figCount; i++) {
+    const a = (i / figCount) * Math.PI * 2;
+    ctx.save();
+    ctx.rotate(a);
+    ctx.fillStyle = i % 6 === 0 ? goldBright : goldMain;
+    ctx.strokeStyle = goldBright;
+    ctx.lineWidth = 4;
+    ctx.globalAlpha = 0.92;
+
+    if (i % 6 === 0) {
+      // Stylized Dong Son stilt house / ceremonial pavilion
+      ctx.beginPath();
+      ctx.moveTo(410, -28);
+      ctx.lineTo(495, -42);
+      ctx.lineTo(508, 0);
+      ctx.lineTo(495, 42);
+      ctx.lineTo(410, 28);
+      ctx.closePath();
+      ctx.stroke();
+      ctx.fillRect(425, -18, 46, 36);
+    } else {
+      // Feathered warrior / dancer silhouette
+      ctx.beginPath();
+      ctx.arc(482, 0, 11, 0, Math.PI * 2); // head
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(493, 0);
+      ctx.lineTo(516, -24); // headdress plume 1
+      ctx.moveTo(493, 0);
+      ctx.lineTo(514, 18); // headdress plume 2
+      ctx.moveTo(470, 0);
+      ctx.lineTo(426, -14); // leg 1
+      ctx.moveTo(470, 0);
+      ctx.lineTo(424, 16); // leg 2
+      ctx.moveTo(466, -18);
+      ctx.lineTo(462, 22); // arms / spear
+      ctx.stroke();
+      ctx.fillRect(448, -9, 24, 18); // torso
+    }
+    ctx.restore();
+  }
+
+  drawRing(532, 6, goldBright);
+  drawRing(546, 4, goldMain);
+
+  // 4. Inner marching deer / short-wing birds band (r = 558..640)
+  const innerBirds = 28;
+  for (let i = 0; i < innerBirds; i++) {
+    const a = (i / innerBirds) * Math.PI * 2;
+    ctx.save();
+    ctx.rotate(a);
+    ctx.fillStyle = goldMain;
+    ctx.strokeStyle = goldBright;
+    ctx.lineWidth = 3.5;
+    ctx.globalAlpha = 0.9;
+    ctx.beginPath();
+    ctx.moveTo(600, -18);
+    ctx.quadraticCurveTo(618, -2, 608, 12);
+    ctx.lineTo(626, 20);
+    ctx.lineTo(594, 22);
+    ctx.quadraticCurveTo(574, 8, 568, -14);
+    ctx.quadraticCurveTo(586, -4, 600, -18);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  drawRing(652, 7, goldBright);
+  drawRing(668, 4, goldMain);
+
+  // 5. Prominent Flying Lac Birds band (r = 684..825) matching reference outer band
+  const lacBirds = 14;
+  for (let i = 0; i < lacBirds; i++) {
+    const a = (i / lacBirds) * Math.PI * 2;
+    ctx.save();
+    ctx.rotate(a);
+    ctx.fillStyle = goldBright;
+    ctx.strokeStyle = goldDeep;
+    ctx.lineWidth = 3;
+    ctx.globalAlpha = 0.96;
+
+    // Long-beaked Lac bird in flight (counter-clockwise)
+    ctx.beginPath();
+    ctx.moveTo(758, -56); // long pointed beak tip
+    ctx.quadraticCurveTo(766, -24, 756, -4); // head & crest
+    ctx.lineTo(784, -18); // head crest plume
+    ctx.lineTo(760, 8);
+    ctx.quadraticCurveTo(796, -4, 816, -34); // upper swept wing
+    ctx.quadraticCurveTo(794, 20, 758, 32); // body to tail
+    ctx.lineTo(776, 62); // tail plume 1
+    ctx.lineTo(748, 38);
+    ctx.lineTo(732, 60); // tail plume 2
+    ctx.lineTo(736, 26);
+    ctx.quadraticCurveTo(704, 14, 692, -24); // lower swept wing
+    ctx.quadraticCurveTo(722, -6, 742, -6);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // 6. Outer multi-ringed golden rim with comb-tooth & sawtooth bands (r = 842..998)
+  drawRing(842, 7, goldBright);
+  drawRing(860, 5, goldMain);
+
+  // Sawtooth band (r = 866..904)
+  ctx.strokeStyle = goldBright;
+  ctx.lineWidth = 4.5;
+  ctx.globalAlpha = 0.92;
+  ctx.beginPath();
+  const outerTeeth = 96;
+  for (let i = 0; i <= outerTeeth; i++) {
+    const a = (i / outerTeeth) * Math.PI * 2;
+    const r = i % 2 === 0 ? 868 : 902;
     const x = Math.cos(a) * r;
     const y = Math.sin(a) * r;
     if (i === 0) ctx.moveTo(x, y);
@@ -93,33 +267,24 @@ export function createDongSonFaceTexture(primary, secondary, accent) {
   }
   ctx.stroke();
 
-  // Stylized Lac bird motifs along outer band
-  const birds = 8;
-  for (let i = 0; i < birds; i++) {
-    const a = (i / birds) * Math.PI * 2;
-    ctx.save();
-    ctx.rotate(a);
-    ctx.strokeStyle = accent;
-    ctx.lineWidth = 3;
-    ctx.globalAlpha = 0.88;
+  drawRing(910, 6, goldMain);
+
+  // Outer radial comb-tooth hatch (r = 916..958)
+  ctx.strokeStyle = goldMain;
+  ctx.lineWidth = 4;
+  ctx.globalAlpha = 0.88;
+  for (let i = 0; i < 180; i++) {
+    const a = (i / 180) * Math.PI * 2;
     ctx.beginPath();
-    ctx.moveTo(300, -18);
-    ctx.quadraticCurveTo(325, -4, 355, -24);
-    ctx.moveTo(312, 0);
-    ctx.quadraticCurveTo(335, 16, 365, -4);
+    ctx.moveTo(Math.cos(a) * 916, Math.sin(a) * 916);
+    ctx.lineTo(Math.cos(a) * 958, Math.sin(a) * 958);
     ctx.stroke();
-    ctx.restore();
   }
 
-  // Outer dot ring
-  ctx.fillStyle = accent;
-  ctx.globalAlpha = 0.85;
-  for (let i = 0; i < 60; i++) {
-    const a = (i / 60) * Math.PI * 2;
-    ctx.beginPath();
-    ctx.arc(Math.cos(a) * 438, Math.sin(a) * 438, 4.5, 0, Math.PI * 2);
-    ctx.fill();
-  }
+  drawRing(964, 7, goldBright);
+  drawRing(984, 9, goldMain);
+  drawRing(1002, 5, goldBright);
+
   ctx.restore();
 
   const texture = new THREE.CanvasTexture(canvas);

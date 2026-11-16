@@ -71,20 +71,20 @@ function buildCenterpiece(patternId, colors, disposableTextures) {
     const drumFaceMat = new THREE.MeshStandardMaterial({
       map: drumTex,
       bumpMap: drumTex,
-      bumpScale: 0.045,
+      bumpScale: 0.06,
       emissiveMap: drumTex,
-      emissive: primaryColor,
-      emissiveIntensity: 0.22,
-      metalness: 0.82,
-      roughness: 0.28,
+      emissive: new THREE.Color('#ffffff'),
+      emissiveIntensity: 0.68,
+      metalness: 0.28,
+      roughness: 0.45,
       transparent: true,
-      opacity: 0.86,
+      opacity: 0.96,
     });
     const coreDisc = new THREE.Mesh(
-      new THREE.CylinderGeometry(2.38, 2.38, 0.09, 72),
+      new THREE.CircleGeometry(2.44, 72),
       drumFaceMat
     );
-    coreDisc.rotation.x = Math.PI / 2;
+    coreDisc.position.z = 0.02;
 
     // 12 Lac Viet Sun Rays around center + glowing core jewel
     const raysGroup = new THREE.Group();
