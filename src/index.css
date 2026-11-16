@@ -53,6 +53,19 @@
   animation: countPop 0.95s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
+@keyframes spinReverse {
+  from {
+    transform: rotate(360deg);
+  }
+  to {
+    transform: rotate(0deg);
+  }
+}
+
+.animate-spin-reverse {
+  animation: spinReverse 18s linear infinite;
+}
+
 .gold-3d-text {
   background: linear-gradient(180deg, #fffbe6 0%, #fde047 38%, #d97706 78%, #fef08a 100%);
   -webkit-background-clip: text;

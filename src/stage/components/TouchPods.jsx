@@ -58,8 +58,9 @@ export default function TouchPods({
                 height: `${effectiveSize}px`,
                 borderColor: isLit ? '#ffffff' : activeColor,
                 boxShadow: isLit
-                  ? `0 0 42px ${activeColor}, 0 0 80px ${activeColor}88, inset 0 0 28px ${activeColor}`
-                  : `0 0 18px ${activeColor}55, inset 0 0 12px ${activeColor}33`,
+                  ? `0 0 46px ${activeColor}, 0 0 90px ${activeColor}99, inset 0 0 32px ${activeColor}`
+                  : `0 0 22px ${activeColor}55, inset 0 0 14px ${activeColor}33`,
+                transitionTimingFunction: 'cubic-bezier(0.22, 1, 0.36, 1)',
               }}
               className={`relative rounded-full border-2 flex flex-col items-center justify-center backdrop-blur-md transition-all duration-300 cursor-pointer select-none ${isLit
                   ? 'scale-110 bg-white/20 animate-pulse-glow'
@@ -67,11 +68,37 @@ export default function TouchPods({
                 }`}
               aria-label={`Bục chạm ${id}`}
             >
+              {/* Expanding ripple halo on active touch */}
+              {isLit && (
+                <span
+                  className="absolute -inset-2 rounded-full border opacity-60 animate-ping pointer-events-none"
+                  style={{ borderColor: activeColor, animationDuration: '1.6s' }}
+                />
+              )}
+
+              {/* Outer dashed holographic ring (clockwise) */}
               <span
-                className="absolute inset-1.5 rounded-full border border-dashed opacity-75 animate-spin"
+                className="absolute inset-1.5 rounded-full border border-dashed opacity-80 animate-spin pointer-events-none"
                 style={{
                   borderColor: isLit ? '#ffffff' : activeColor,
-                  animationDuration: isLit ? '5s' : '14s',
+                  animationDuration: isLit ? '4.5s' : '14s',
+                }}
+              />
+
+              {/* Inner dotted tech ring (counter-clockwise) */}
+              <span
+                className="absolute inset-3 rounded-full border border-dotted opacity-55 animate-spin-reverse pointer-events-none"
+                style={{
+                  borderColor: isLit ? '#ffffff' : activeColor,
+                  animationDuration: isLit ? '7s' : '20s',
+                }}
+              />
+
+              {/* Subtle inner radial sheen */}
+              <span
+                className="absolute inset-4 rounded-full pointer-events-none opacity-35"
+                style={{
+                  background: `radial-gradient(circle, ${activeColor}44 0%, transparent 72%)`,
                 }}
               />
 

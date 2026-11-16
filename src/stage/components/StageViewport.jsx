@@ -170,7 +170,7 @@ function StageContent({
 
       {/* Climax Transition Flash */}
       <div
-        className={`absolute inset-0 z-50 pointer-events-none transition-opacity duration-300 ${flashActive ? 'opacity-90' : 'opacity-0'
+        className={`absolute inset-0 z-50 pointer-events-none transition-opacity duration-300 ${flashActive ? 'opacity-60' : 'opacity-0'
           }`}
         style={{
           background: `radial-gradient(circle, #ffffff 0%, ${pattern.colors.accent} 60%, transparent 100%)`,
