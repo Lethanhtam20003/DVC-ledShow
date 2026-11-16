@@ -1,0 +1,1496 @@
+/* ==========================================================================
+   GIAO DIỆN SÂN KHẤU LED NGHI LỄ NHÀ NƯỚC & CHUYỂN ĐỔI SỐ QUỐC GIA
+   Thiết kế chuẩn mực khánh tiết: Đỏ Lễ Tiết & Vàng Kim Hoàng Gia / Họa tiết Trống Đồng
+   ========================================================================== */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+:root {
+  /* MÀU SẮC CHỦ ĐẠO MẶC ĐỊNH: ĐỎ LỄ TIẾT & VÀNG KIM HOÀNG GIA (State Crimson & Gold) */
+  --state-gold: #ffd700;
+  --state-gold-light: #fff2a3;
+  --state-gold-dark: #b45309;
+  --state-gold-glow: rgba(255, 215, 0, 0.75);
+  --state-gold-faint: rgba(255, 215, 0, 0.18);
+  
+  --state-red-primary: #dc2626;
+  --state-red-glow: rgba(220, 38, 38, 0.8);
+  --bg-gradient: radial-gradient(ellipse at 50% 30%, #540b13 0%, #300409 45%, #170205 80%, #080002 100%);
+  
+  --panel-bg: rgba(28, 4, 7, 0.95);
+  --panel-border: rgba(255, 215, 0, 0.4);
+  
+  --text-main: #ffffff;
+  --text-gold: #ffd700;
+  --text-muted: #fecdd3;
+  
+  --gold-metallic: linear-gradient(135deg, #fff7b3 0%, #ffd700 35%, #f59e0b 70%, #b45309 100%);
+  --gold-sheen: linear-gradient(180deg, #ffffff 10%, #fff2a3 40%, #ffd700 80%, #d97706 100%);
+}
+
+/* BIẾN THỂ 2: XANH DỊCH VỤ CÔNG & VÀNG ĐỒNG (Diplomatic Blue & Golden Brass) */
+body.theme-state-blue-gold {
+  --state-gold: #fbbf24;
+  --state-gold-light: #fef08a;
+  --state-gold-dark: #b45309;
+  --state-gold-glow: rgba(251, 191, 36, 0.75);
+  --state-gold-faint: rgba(251, 191, 36, 0.18);
+  
+  --bg-gradient: radial-gradient(ellipse at 50% 30%, #0d2859 0%, #08183d 45%, #030c22 80%, #01040f 100%);
+  --panel-bg: rgba(6, 17, 44, 0.95);
+  --panel-border: rgba(251, 191, 36, 0.4);
+  --text-muted: #cbd5e1;
+}
+
+html, body {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: var(--bg-gradient);
+  font-family: 'Montserrat', sans-serif;
+  color: var(--text-main);
+  position: relative;
+}
+
+/* ==========================================================================
+   VIDEO BACKGROUND LAYER (YOUTUBE SB-DZ4HOZWCK & LOCAL MP4)
+   ========================================================================== */
+.video-bg-container {
+  position: absolute;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background: #000000;
+  transition: opacity 0.6s ease, filter 0.5s ease;
+  filter: brightness(var(--screen-brightness, 0.72));
+}
+
+.youtube-player-wrap {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 130vw; /* Kỹ thuật Overscan 130% đẩy 100% thanh tiêu đề và nút YouTube ra ngoài khung hình */
+  height: 73.125vw; /* 16:9 scale */
+  min-height: 130vh;
+  min-width: 231.1vh; /* 16:9 scale */
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+/* LỚP CHỚP SÁNG VÀNG KIM CHUYỂN TIẾP CAO TRÀO KHI NƯỚC ĐẦY 100% */
+.climax-flash {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(circle at 50% 50%, #ffffff 0%, #ffd700 40%, #ffedd5 70%, transparent 100%);
+  z-index: 250;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.climax-flash.active {
+  opacity: 0.95;
+}
+
+.youtube-player-wrap iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  pointer-events: none;
+}
+
+.local-video-player {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+}
+
+.video-tint-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(20, 2, 4, 0.45);
+  z-index: 1;
+  pointer-events: none;
+  transition: background 0.3s ease;
+}
+
+/* ÁNH SÁNG HÀO QUANG MẶT TRỜI TỎA RẠNG (SUNBURST RAYS) */
+.state-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.sunburst-rays {
+  position: absolute;
+  top: 35%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 150vw;
+  height: 150vw;
+  background: repeating-conic-gradient(
+    from 0deg,
+    rgba(255, 215, 0, 0.04) 0deg 7.5deg,
+    transparent 7.5deg 15deg
+  );
+  opacity: 0.8;
+  animation: rotateClockwise 120s linear infinite;
+  mask-image: radial-gradient(circle at 50% 50%, black 20%, transparent 65%);
+}
+
+.vignette {
+  position: absolute;
+  inset: 0;
+  box-shadow: inset 0 0 150px rgba(0, 0, 0, 0.85);
+}
+
+/* CANVAS LAYERS */
+#bg-canvas, #fx-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+#bg-canvas { z-index: 1; }
+#fx-canvas { z-index: 8; }
+
+/* SÂN KHẤU CHÍNH (STAGE) */
+#stage {
+  position: relative;
+  z-index: 5;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 25px 40px 30px;
+  filter: brightness(var(--screen-brightness, 0.72));
+  transition: filter 0.5s ease;
+}
+
+body.show-header #stage {
+  justify-content: space-between;
+}
+
+/* HEADER: MẶC ĐỊNH ẨN THEO YÊU CẦU ĐỂ CHỈ TRÌNH CHIẾU NỀN TRỐNG ĐỒNG */
+.event-header {
+  text-align: center;
+  animation: fadeInDown 1s ease-out;
+  display: none;
+}
+
+body.show-header .event-header {
+  display: block;
+}
+
+.header-authority {
+  display: inline-block;
+  padding: 6px 28px;
+  background: rgba(255, 215, 0, 0.12);
+  border: 1.5px solid var(--state-gold);
+  border-radius: 4px;
+  color: var(--state-gold-light);
+  font-family: 'Montserrat', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+  box-shadow: 0 0 25px var(--state-gold-glow);
+  text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+}
+
+.event-title {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 3.3rem;
+  font-weight: 900;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  background: var(--gold-sheen);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 4px 20px rgba(0, 0, 0, 0.9)) drop-shadow(0 0 35px var(--state-gold-glow));
+  margin-bottom: 8px;
+  line-height: 1.15;
+}
+
+.event-subtitle {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: 5px;
+  color: #ffffff;
+  text-transform: uppercase;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8), 0 0 15px var(--state-gold-glow);
+}
+
+/* ==========================================================================
+   TRUNG TÂM: MẶT TRỐNG ĐỒNG ĐÔNG SƠN & BIỂU TRƯNG SỐ
+   ========================================================================== */
+.center-core-container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  width: 100%;
+  min-height: 360px;
+  overflow: visible;
+}
+
+.core-hologram {
+  position: relative;
+  width: 340px;
+  height: 340px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: translateY(var(--core-y, 0px)) scale(var(--core-scale, 1));
+  transition: transform 0.12s ease;
+}
+
+/* Vòng ngoài Trống Đồng Đông Sơn */
+.dongson-ring-outer {
+  position: absolute;
+  width: 330px;
+  height: 330px;
+  border-radius: 50%;
+  border: 3px solid var(--state-gold);
+  background: radial-gradient(circle, rgba(255, 215, 0, 0.08) 0%, rgba(20, 2, 4, 0.85) 75%);
+  box-shadow: 
+    0 0 45px var(--state-gold-glow),
+    inset 0 0 30px var(--state-gold-glow);
+  animation: rotateClockwise 60s linear infinite;
+  pointer-events: none;
+}
+
+.dongson-ring-outer::before {
+  content: '';
+  position: absolute;
+  inset: 8px;
+  border-radius: 50%;
+  border: 2px dashed rgba(255, 215, 0, 0.8);
+}
+
+.dongson-ring-outer::after {
+  content: '';
+  position: absolute;
+  inset: 18px;
+  border-radius: 50%;
+  border: 1.5px dotted rgba(255, 242, 163, 0.7);
+}
+
+/* Vòng trong Trống Đồng */
+.dongson-ring-inner {
+  position: absolute;
+  width: 220px;
+  height: 220px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 215, 0, 0.7);
+  box-shadow: 0 0 25px var(--state-gold-glow);
+  animation: rotateCounterClockwise 35s linear infinite;
+  pointer-events: none;
+}
+
+.core-glow {
+  position: absolute;
+  width: 180px;
+  height: 180px;
+  background: radial-gradient(circle, var(--state-gold-glow) 0%, rgba(220, 38, 38, 0.3) 50%, transparent 80%);
+  border-radius: 50%;
+  animation: pulseCore 3s ease-in-out infinite;
+  filter: blur(12px);
+}
+
+/* ==========================================================================
+   TRẠNG THÁI ĐẾM NGƯỢC 5-4-3-2-1 CHUẨN KEY MOMENT (VIDEO qyW8818wHhA)
+   ========================================================================== */
+.core-countdown-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  width: 250px;
+  height: 250px;
+  z-index: 3;
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.core-hologram.unlocked .core-countdown-state {
+  opacity: 0;
+  transform: scale(0.3);
+  pointer-events: none;
+}
+
+/* Vòng lửa hạt năng lượng xoay quanh số */
+.countdown-fire-ring {
+  position: absolute;
+  inset: -15px;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  border-top-color: #ffd700;
+  border-right-color: #fff2a3;
+  border-bottom-color: #ff9100;
+  box-shadow: 
+    0 0 40px rgba(255, 215, 0, 0.75),
+    inset 0 0 25px rgba(255, 145, 0, 0.45);
+  animation: rotateClockwise 2.2s linear infinite;
+  pointer-events: none;
+}
+
+.countdown-orbit-sparks {
+  position: absolute;
+  inset: -28px;
+  border-radius: 50%;
+  border: 1.5px dashed rgba(255, 235, 160, 0.7);
+  box-shadow: 0 0 50px rgba(255, 215, 0, 0.4);
+  animation: rotateCounterClockwise 4.5s linear infinite;
+  pointer-events: none;
+}
+
+/* Khối số đếm ngược khổng lồ 3D vàng kim */
+.countdown-number-wrap {
+  position: relative;
+  width: 170px;
+  height: 170px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.countdown-big-number {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 7.6rem;
+  font-weight: 900;
+  line-height: 1;
+  color: #ffffff;
+  text-shadow:
+    0 0 20px #ffffff,
+    0 0 45px #ffd700,
+    0 0 80px #ff9100,
+    0 6px 18px rgba(0, 0, 0, 0.95);
+  filter: drop-shadow(0 0 30px rgba(255, 215, 0, 0.95));
+  transition: transform 0.12s ease-out;
+  display: none !important;
+}
+
+body.charging .countdown-big-number {
+  display: block !important;
+}
+
+body.charging .countdown-standby-star {
+  display: none !important;
+}
+
+.countdown-big-number.pop {
+  animation: countdownPop 0.85s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.countdown-standby-star {
+  width: 170px;
+  height: 170px;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+}
+
+.standby-star-svg {
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 0 16px rgba(255, 215, 0, 0.8));
+  animation: pulseDot 2.8s ease-in-out infinite;
+}
+
+.countdown-label {
+  display: none !important;
+}
+
+@keyframes countdownPop {
+  0% { transform: scale(1.68); filter: brightness(2.2) drop-shadow(0 0 50px #ffffff); }
+  45% { transform: scale(0.92); }
+  75% { transform: scale(1.08); }
+  100% { transform: scale(1); filter: brightness(1); }
+}
+
+/* Biểu tượng lúc chờ kích hoạt (Standby - Bình nước) */
+.core-lock-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* BÌNH NĂNG LƯỢNG NƯỚC VÀNG KIM DÂNG ĐẦY (LIQUID FILL 0% -> 100%) */
+.liquid-vessel {
+  position: relative;
+  width: 170px;
+  height: 170px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 
+    0 0 35px var(--state-gold-glow),
+    inset 0 0 25px rgba(255, 215, 0, 0.4);
+  background: radial-gradient(circle, rgba(40, 5, 8, 0.95) 0%, rgba(20, 2, 4, 0.98) 100%);
+  overflow: hidden;
+}
+
+.liquid-svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  filter: drop-shadow(0 0 12px var(--state-gold-glow));
+}
+
+.vessel-border {
+  fill: none;
+  stroke: var(--state-gold);
+  stroke-width: 3.5;
+}
+
+.vessel-inner-dash {
+  fill: none;
+  stroke: var(--state-gold-light);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 3;
+}
+
+.star-on-water {
+  fill: none;
+  stroke: #ffffff;
+  stroke-width: 2.5;
+  filter: drop-shadow(0 0 8px #ffd700);
+  opacity: 0.95;
+  transition: all 0.4s ease;
+}
+
+.star-on-water.full {
+  fill: #ffffff;
+  filter: drop-shadow(0 0 30px #ffffff);
+}
+
+.star-core-ring {
+  fill: none;
+  stroke: #ffffff;
+  stroke-width: 1.8;
+  opacity: 0.85;
+}
+
+.star-core-dot {
+  fill: #ffffff;
+  box-shadow: 0 0 10px #ffffff;
+}
+
+/* Trạng thái mở khóa vinh danh thành công */
+.core-unlocked-state {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transform: scale(0.6);
+  pointer-events: none;
+  transition: all 0.7s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.core-hologram.unlocked .core-lock-state {
+  opacity: 0;
+  transform: scale(0.3);
+  pointer-events: none;
+}
+
+.core-hologram.unlocked .core-unlocked-state {
+  opacity: 1;
+  transform: scale(1);
+  pointer-events: auto;
+}
+
+.core-hologram.unlocked .dongson-ring-outer {
+  animation: burstRings 1s forwards, rotateClockwise 15s linear infinite 1s;
+  box-shadow: 0 0 70px var(--state-gold-glow), 0 0 120px rgba(255, 215, 0, 0.5);
+}
+
+.success-logo-wrap {
+  width: 150px;
+  height: 150px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.state-seal-svg {
+  width: 120px;
+  height: 120px;
+  filter: drop-shadow(0 0 30px var(--state-gold-glow));
+  animation: rotateClockwise 40s linear infinite;
+}
+
+.seal-border {
+  fill: rgba(220, 38, 38, 0.8);
+  stroke: var(--state-gold);
+  stroke-width: 3.5;
+}
+
+.seal-border-dash {
+  fill: none;
+  stroke: var(--state-gold-light);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 3;
+}
+
+.custom-logo {
+  max-width: 140px;
+  max-height: 140px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 35px var(--state-gold-glow));
+}
+
+.unlocked-badge {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 1.15rem;
+  font-weight: 900;
+  letter-spacing: 4px;
+  color: #1a0204;
+  background: var(--gold-sheen);
+  padding: 8px 26px;
+  border-radius: 4px;
+  box-shadow: 0 0 35px var(--state-gold-glow), 0 4px 15px rgba(0,0,0,0.6);
+  margin-top: 14px;
+  white-space: nowrap;
+}
+
+/* ==========================================================================
+   BỤC CHẠM TRỐNG ĐỒNG SỐ MẠ VÀNG (GOLDEN BRONZE DRUM PODS)
+   Kích thước vừa vặn tay lãnh đạo & Có thể điều chỉnh cao độ, khoảng cách
+   ========================================================================== */
+.touch-zones-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: var(--pod-gap, 38px);
+  width: 100%;
+  max-width: 1650px;
+  padding: 0;
+  margin-bottom: 25px;
+  transform: translateY(var(--pod-y, -60px));
+  transition: transform 0.15s ease, gap 0.15s ease;
+  position: relative;
+  z-index: 6;
+}
+
+/* SILHOUETTE ĐÔ THỊ THÔNG MINH HIỆN ĐẠI ĐÁY MÀN HÌNH (CHUẨN VIDEO qyW8818wHhA) */
+.city-skyline {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 180px;
+  z-index: 4;
+  pointer-events: none;
+  overflow: hidden;
+  opacity: 0.82;
+  transition: opacity 0.5s ease;
+}
+
+body.in-celebration .city-skyline {
+  opacity: 0.55;
+}
+
+.skyline-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  filter: drop-shadow(0 -4px 18px rgba(255, 215, 0, 0.45));
+}
+
+.hand-pedestal {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  position: relative;
+  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.hand-pedestal:hover {
+  transform: translateY(-5px) scale(1.05);
+}
+
+/* Mặt đĩa trống đồng mạ vàng thu nhỏ vừa vặn tay người thật (~110px) */
+.hand-scanner {
+  position: relative;
+  width: var(--pod-size, 110px);
+  height: var(--pod-size, 110px);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 215, 0, 0.28) 0%, rgba(35, 4, 7, 0.95) 75%);
+  border: 2.5px solid var(--state-gold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 
+    0 8px 30px rgba(0, 0, 0, 0.8),
+    0 0 30px var(--state-gold-faint),
+    inset 0 0 20px rgba(255, 215, 0, 0.3);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: visible;
+}
+
+/* Vành ngoài viền kim loại kép */
+.hand-scanner::before {
+  content: '';
+  position: absolute;
+  inset: -9px;
+  border-radius: 50%;
+  border: 1.5px dashed var(--state-gold);
+  opacity: 0.7;
+  animation: rotateClockwise 25s linear infinite;
+  pointer-events: none;
+}
+
+.hand-scanner::after {
+  content: '';
+  position: absolute;
+  inset: -16px;
+  border-radius: 50%;
+  border: 1px solid var(--state-gold);
+  opacity: 0.35;
+  animation: orbPulseRipple 2.8s ease-out infinite;
+  pointer-events: none;
+}
+
+.hand-pedestal:hover .hand-scanner {
+  border-color: #ffffff;
+  box-shadow: 
+    0 0 45px var(--state-gold-glow),
+    inset 0 0 30px var(--state-gold-glow);
+}
+
+/* SVG Hoa văn Trống đồng Đông Sơn bên trong bục chạm */
+.dongson-pod-svg {
+  width: calc(var(--pod-size, 110px) * 0.76);
+  height: calc(var(--pod-size, 110px) * 0.76);
+  overflow: visible;
+  filter: drop-shadow(0 0 10px var(--state-gold-glow));
+}
+
+.drum-sun-rays {
+  fill: var(--state-gold);
+  transform-origin: center;
+}
+
+.drum-outer-ring {
+  fill: none;
+  stroke: var(--state-gold);
+  stroke-width: 2;
+  stroke-dasharray: 6 4;
+}
+
+.drum-middle-ring {
+  fill: none;
+  stroke: var(--state-gold-light);
+  stroke-width: 1.8;
+  stroke-dasharray: 20 10;
+}
+
+.drum-center-star {
+  fill: #ffffff;
+  filter: drop-shadow(0 0 8px #ffd700);
+  animation: pulseDot 1.4s infinite;
+}
+
+/* Vạch quét hào quang tròn mạ vàng */
+.radar-sweep {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, transparent 0deg, transparent 270deg, var(--state-gold-glow) 360deg);
+  opacity: 0.4;
+  animation: rotateClockwise 3.5s linear infinite;
+  pointer-events: none;
+  mask-image: radial-gradient(circle, transparent 40%, black 80%);
+}
+
+/* TRẠNG THÁI BỤC ĐƯỢC LÃNH ĐẠO CHẠM TAY (BÙNG SÁNG HÀO QUANG VÀNG KIM) */
+.hand-pedestal.active .hand-scanner {
+  border-color: #ffffff;
+  background: radial-gradient(circle, #ffffff 0%, #ffd700 35%, rgba(60, 5, 10, 0.95) 85%);
+  box-shadow: 
+    0 0 65px #ffffff,
+    0 0 110px var(--state-gold-glow),
+    inset 0 0 45px #ffffff;
+  transform: scale(1.12);
+}
+
+.hand-pedestal.active .hand-scanner::before {
+  border-color: #ffffff;
+  opacity: 1;
+  animation-duration: 6s;
+  box-shadow: 0 0 35px var(--state-gold-glow);
+}
+
+.hand-pedestal.active .hand-scanner::after {
+  border-color: #ffffff;
+  opacity: 0.9;
+  animation: orbPulseRippleFast 0.8s ease-out infinite;
+}
+
+.hand-pedestal.active .dongson-pod-svg {
+  filter: drop-shadow(0 0 25px #ffffff);
+}
+
+.hand-pedestal.active .radar-sweep {
+  opacity: 0.95;
+  animation-duration: 1s;
+}
+
+/* ==========================================================================
+   MÀN HÌNH CHÚC MỪNG VINH DANH (CHUẨN ĐẠO DIỄN SÂN KHẤU LED CHUYỂN ĐỘNG)
+   Thiết kế Mở Thoáng Rộng, Giữ Trọn Nền Trống Đồng, Tôn Nghiêm, Không Bị Chói
+   ========================================================================== */
+
+/* KHI VÀO MÀN VINH DANH: ẨN SẠCH CÁC PHẦN TỬ ĐOẠN TRƯỚC, CHỈ ĐỂ LẠI NỀN TRỐNG ĐỒNG */
+body.in-celebration .event-header,
+body.in-celebration .center-core-container,
+body.in-celebration .core-hologram,
+body.in-celebration .touch-zones-container {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  transform: scale(0.88) !important;
+  transition: opacity 0.35s ease, transform 0.35s ease !important;
+}
+
+.celebration-screen {
+  position: absolute;
+  inset: 0;
+  z-index: 15;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  /* Lớp phủ siêu nhẹ, giữ 100% độ nét và rực rỡ của Video Trống Đồng phía sau */
+  background: radial-gradient(circle at 50% 50%, rgba(15, 2, 4, 0.2) 0%, rgba(10, 1, 3, 0.52) 100%);
+  backdrop-filter: none;
+  animation: zoomFadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+}
+
+/* KHỐI NỘI DUNG VINH DANH THOÁNG RỘNG TRÊN NỀN TRỐNG ĐỒNG */
+.celebration-content {
+  position: relative;
+  z-index: 5;
+  text-align: center;
+  max-width: 1400px;
+  padding: 10px 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* BIỂU TRƯNG / QUỐC HUY / LOGO ĐƠN VỊ KHI VINH DANH */
+.celeb-logo-wrap {
+  width: 135px;
+  height: 135px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  filter: drop-shadow(0 0 25px rgba(255, 215, 0, 0.75));
+  animation: floatEmblem 3.2s ease-in-out infinite alternate;
+}
+
+.celeb-custom-logo {
+  max-width: 135px;
+  max-height: 135px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 20px rgba(255, 215, 0, 0.8));
+}
+
+.celeb-default-logo {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.celeb-seal-svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* DẢI BANNER LỤA VÀNG KIM CHÍNH THỨC */
+.celebration-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 7px 32px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(120, 15, 25, 0.8) 0%, rgba(200, 150, 40, 0.9) 50%, rgba(120, 15, 25, 0.8) 100%);
+  border: 1px solid rgba(255, 235, 170, 0.7);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6), 0 0 15px rgba(212, 175, 55, 0.3);
+  font-family: 'Montserrat', sans-serif;
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: 4px;
+  color: #ffffff;
+  text-transform: uppercase;
+  margin-bottom: 16px;
+}
+
+.ribbon-star {
+  color: #fff2a3;
+  font-size: 0.95rem;
+}
+
+/* TIÊU ĐỀ LỚN 3D VÀNG KIM SANG TRỌNG - KHÔNG CHÓI MẮT */
+.celebration-title {
+  font-family: 'Montserrat', sans-serif;
+  font-size: clamp(2.4rem, 3.6vw, 4rem);
+  font-weight: 900;
+  letter-spacing: 3.5px;
+  line-height: 1.2;
+  text-transform: uppercase;
+  background: linear-gradient(180deg, #ffffff 0%, #fff0a8 25%, #e6be44 55%, #ad7c1a 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 4px 14px rgba(0, 0, 0, 0.95)) drop-shadow(0 0 20px rgba(212, 175, 55, 0.35));
+  margin-bottom: 16px;
+  max-width: 1300px;
+}
+
+/* ĐƯỜNG PHÂN CÁCH TRANG TRỌNG */
+.celeb-divider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  width: 100%;
+  max-width: 550px;
+  margin-bottom: 16px;
+}
+
+.celeb-divider .divider-line {
+  flex: 1;
+  height: 1.5px;
+  background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.75), transparent);
+}
+
+.celeb-divider .divider-diamond {
+  color: #ffd700;
+  font-size: 0.9rem;
+  opacity: 0.85;
+}
+
+/* KHẨU HIỆU HÀNH ĐỘNG HÀO HÙNG */
+.celebration-desc {
+  font-family: 'Montserrat', sans-serif;
+  font-size: clamp(1.1rem, 1.5vw, 1.45rem);
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: 3px;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.9), 0 0 15px rgba(212, 175, 55, 0.35);
+  margin-bottom: 22px;
+}
+
+/* 3 TRỤ CỘT CHUYỂN ĐỔI SỐ */
+.celebration-pillars {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.pillar-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 20px;
+  border-radius: 4px;
+  background: rgba(20, 2, 4, 0.6);
+  border: 1px solid rgba(212, 175, 55, 0.4);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6);
+  font-family: 'Montserrat', sans-serif;
+  font-size: 0.92rem;
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: #fae69e;
+  transition: all 0.25s ease;
+}
+
+.pillar-pill.highlight {
+  border-color: rgba(255, 215, 0, 0.7);
+  background: rgba(65, 8, 14, 0.75);
+  color: #ffffff;
+}
+
+.pillar-diamond {
+  color: #ffd700;
+  font-size: 0.75rem;
+  opacity: 0.9;
+}
+
+.pillar-pill:hover {
+  transform: translateY(-3px);
+  border-color: #ffffff;
+  box-shadow: 0 0 30px #ffd700;
+}
+
+/* ==========================================================================
+   BÀNG ĐIỀU KHIỂN KỸ THUẬT (CONTROL PANEL)
+   ========================================================================== */
+.control-panel {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  width: 440px;
+  max-height: calc(100vh - 40px);
+  background: var(--panel-bg);
+  border: 1.8px solid var(--panel-border);
+  border-radius: 8px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.95), 0 0 35px var(--state-gold-faint);
+  backdrop-filter: blur(25px);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s;
+}
+
+.control-panel.hidden {
+  transform: translateX(480px);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.panel-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(255, 215, 0, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* HỆ THỐNG TABS ĐIỀU HÀNH KỸ THUẬT */
+.panel-tabs {
+  display: flex;
+  background: rgba(0, 0, 0, 0.45);
+  border-bottom: 1.5px solid rgba(255, 215, 0, 0.25);
+}
+
+.tab-btn {
+  flex: 1;
+  background: none;
+  border: none;
+  border-radius: 0;
+  padding: 13px 8px;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: var(--text-muted);
+  border-bottom: 3px solid transparent;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.tab-btn:hover {
+  color: #ffffff;
+  background: rgba(255, 215, 0, 0.05);
+}
+
+.tab-btn.active {
+  color: var(--state-gold);
+  border-bottom-color: var(--state-gold);
+  background: rgba(255, 215, 0, 0.12);
+  text-shadow: 0 0 10px rgba(255, 215, 0, 0.6);
+}
+
+.tab-content {
+  display: none;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.tab-content.active {
+  display: flex;
+}
+
+/* CÁC ĐIỀU KHIỂN CỦA TAB VIDEO BACKGROUND */
+.toggle-switch-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 48px;
+  height: 26px;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  inset: 0;
+  background-color: rgba(255, 255, 255, 0.25);
+  transition: 0.3s;
+  border-radius: 26px;
+  border: 1px solid rgba(255, 215, 0, 0.3);
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: 0.3s;
+  border-radius: 50%;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.4);
+}
+
+input:checked + .slider {
+  background-color: var(--state-gold);
+  box-shadow: 0 0 15px var(--state-gold-glow);
+}
+
+input:checked + .slider:before {
+  transform: translateX(22px);
+  background-color: #1a0204;
+}
+
+.radio-option {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  font-size: 0.88rem;
+  cursor: pointer;
+}
+
+.radio-option input[type="radio"] {
+  accent-color: var(--state-gold);
+  margin-top: 3px;
+  cursor: pointer;
+}
+
+.radio-option label {
+  cursor: pointer;
+}
+
+.radio-option small {
+  display: block;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  margin-top: 2px;
+}
+
+.yt-input-wrap {
+  margin-left: 26px;
+  margin-top: 8px;
+}
+
+.local-input-wrap {
+  margin-left: 26px;
+  margin-top: 8px;
+}
+
+.slider-control-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.slider-control-row span {
+  color: var(--state-gold);
+}
+
+.slider-control-row input[type="range"] {
+  accent-color: var(--state-gold);
+  cursor: pointer;
+  height: 6px;
+  border-radius: 3px;
+}
+
+.btn-small {
+  padding: 8px 14px;
+  font-size: 0.82rem;
+  border-radius: 4px;
+}
+
+.panel-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: var(--state-gold);
+}
+
+.btn-close {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1.6rem;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.btn-close:hover { color: #fff; }
+
+.panel-body {
+  padding: 18px 20px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.panel-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.section-label {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 0.88rem;
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: var(--state-gold);
+}
+
+.section-tip {
+  font-size: 0.84rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.action-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+button {
+  cursor: pointer;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+  border-radius: 4px;
+  padding: 12px 14px;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.25s ease;
+}
+
+.btn-primary {
+  grid-column: span 2;
+  background: var(--gold-sheen);
+  color: #1a0204;
+  font-weight: 900;
+  box-shadow: 0 4px 25px var(--state-gold-glow);
+}
+.btn-primary:hover {
+  filter: brightness(1.15);
+  transform: translateY(-2px);
+}
+
+.btn-warning {
+  background: rgba(220, 38, 38, 0.25);
+  border: 1px solid #ef4444;
+  color: #fca5a5;
+}
+.btn-warning:hover {
+  background: #dc2626;
+  color: #fff;
+}
+
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+.btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.btn-export {
+  width: 100%;
+  background: linear-gradient(90deg, #b45309, #d97706);
+  color: #fff;
+  font-weight: 800;
+  box-shadow: 0 4px 20px rgba(217, 119, 6, 0.5);
+}
+.btn-export:hover {
+  filter: brightness(1.2);
+  transform: translateY(-2px);
+}
+
+.export-status {
+  font-size: 0.88rem;
+  color: var(--state-gold);
+  text-align: center;
+  font-weight: 700;
+  padding: 6px;
+}
+
+.btn-group-toggle {
+  display: flex;
+  gap: 6px;
+}
+
+.btn-group-toggle button {
+  flex: 1;
+  padding: 8px 6px;
+  font-size: 0.82rem;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: var(--text-muted);
+}
+
+.btn-group-toggle button.active {
+  background: var(--state-gold);
+  border-color: var(--state-gold);
+  color: #1a0204;
+  font-weight: 900;
+}
+
+/* BỘ CHỌN SỐ LƯỢNG NGƯỜI THAM GIA LINH HOẠT (1 - 12 NGƯỜI) */
+.participant-picker-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.participant-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+}
+
+.participant-grid button {
+  padding: 8px 2px;
+  font-size: 0.82rem;
+  font-weight: 800;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 215, 0, 0.25);
+  color: var(--text-muted);
+}
+
+.participant-grid button.active {
+  background: var(--state-gold);
+  border-color: var(--state-gold);
+  color: #1a0204;
+  font-weight: 900;
+  box-shadow: 0 0 10px var(--state-gold-glow);
+}
+
+.stepper-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.stepper-btn {
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  font-size: 1.25rem;
+  font-weight: 900;
+  border-radius: 4px;
+  background: rgba(255, 215, 0, 0.15);
+  border: 1px solid var(--state-gold);
+  color: var(--state-gold);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.stepper-btn:hover {
+  background: var(--state-gold);
+  color: #1a0204;
+}
+
+.stepper-display {
+  flex: 1;
+  text-align: center;
+  font-size: 1.05rem;
+  font-weight: 900;
+  color: #ffffff;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 8px 12px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 215, 0, 0.35);
+  letter-spacing: 1px;
+}
+
+.setting-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.88rem;
+}
+
+select, input[type="text"] {
+  background: rgba(0, 0, 0, 0.55);
+  border: 1.5px solid rgba(255, 215, 0, 0.35);
+  border-radius: 4px;
+  color: #fff;
+  padding: 10px 12px;
+  font-family: inherit;
+  font-size: 0.9rem;
+  outline: none;
+}
+
+select:focus, input[type="text"]:focus {
+  border-color: var(--state-gold);
+  box-shadow: 0 0 15px var(--state-gold-glow);
+}
+
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.input-group label {
+  font-size: 0.84rem;
+  color: var(--text-muted);
+}
+.input-group input[type="file"] {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+/* NÚT TRÒN MỞ PANEL KHI ĐANG ẨN */
+.btn-floating-settings {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: rgba(35, 4, 7, 0.9);
+  border: 2px solid var(--state-gold);
+  color: var(--state-gold);
+  box-shadow: 0 0 25px var(--state-gold-glow);
+  backdrop-filter: blur(12px);
+  z-index: 90;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  opacity: 0.75;
+}
+
+.btn-floating-settings:hover {
+  opacity: 1;
+  transform: scale(1.15) rotate(45deg);
+  box-shadow: 0 0 40px var(--state-gold-glow);
+}
+
+.hidden { display: none !important; }
+
+/* KEYFRAMES */
+@keyframes rotateClockwise {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes rotateCounterClockwise {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(-360deg); }
+}
+
+@keyframes pulseCore {
+  0%, 100% { transform: scale(1); opacity: 0.8; }
+  50% { transform: scale(1.3); opacity: 1; }
+}
+
+@keyframes floatEmblem {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-7px); }
+}
+
+@keyframes pulseDot {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.35); opacity: 0.6; }
+}
+
+@keyframes orbPulseRipple {
+  0% { transform: scale(0.92); opacity: 0.7; }
+  100% { transform: scale(1.35); opacity: 0; }
+}
+
+@keyframes orbPulseRippleFast {
+  0% { transform: scale(0.96); opacity: 1; }
+  100% { transform: scale(1.45); opacity: 0; }
+}
+
+@keyframes fadeInDown {
+  from { opacity: 0; transform: translateY(-25px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes zoomFadeIn {
+  from { opacity: 0; transform: scale(0.92); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes burstRings {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.4); opacity: 0.4; }
+  100% { transform: scale(1.12); opacity: 0.95; }
+}
+
+/* RESPONSIVE MÀN HÌNH LED ĐẶC THÙ */
+@media (max-height: 800px) {
+  .event-title { font-size: 2.5rem; }
+  .core-hologram { width: 270px; height: 270px; }
+  .dongson-ring-outer { width: 260px; height: 260px; }
+  .dongson-ring-inner { width: 180px; height: 180px; }
+  .celebration-title { font-size: 2.6rem; }
+  .celebration-desc { font-size: 1.2rem; }
+}

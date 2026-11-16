@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Nghi Thức Kích Hoạt Chuyển Đổi Số & Dịch Vụ Công</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&family=Playfair+Display:wght@700;900&family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
+</head>
+<body class="theme-state-red-gold">
+  <!-- VIDEO BACKGROUND LAYER: Kỹ thuật Overscan 125% che triệt để 100% nút & tiêu đề YouTube -->
+  <div id="video-bg-container" class="video-bg-container">
+    <div id="youtube-player-wrap" class="youtube-player-wrap">
+      <div id="youtube-player"></div>
+    </div>
+    <video id="local-video-player" class="local-video-player hidden" autoplay loop muted playsinline></video>
+    <div id="video-tint-overlay" class="video-tint-overlay"></div>
+  </div>
+
+  <!-- LỚP CHỚP SÁNG VÀNG KIM CHUYỂN TIẾP CAO TRÀO KHI NƯỚC ĐẦY 100% -->
+  <div id="climax-flash" class="climax-flash"></div>
+
+  <!-- Canvas nền hiệu ứng hạt vàng kim & tia hào quang -->
+  <canvas id="bg-canvas"></canvas>
+  <canvas id="fx-canvas"></canvas>
+
+  <!-- Lớp phủ ánh hào quang lễ nghi & hoa văn chìm -->
+  <div class="state-overlay">
+    <div class="sunburst-rays"></div>
+    <div class="vignette"></div>
+  </div>
+
+  <!-- SÂN KHẤU TRÌNH CHIẾU CHÍNH -->
+  <main id="stage">
+    <!-- Header: Đơn vị chỉ đạo & Tiêu đề sự kiện trang nghiêm -->
+    <header class="event-header">
+      <div class="header-authority" id="event-badge">ỦY BAN NHÂN DÂN • NGÀY HỘI CÔNG NGHỆ SỐ</div>
+      <h1 class="event-title" id="display-title">NGHI THỨC KÍCH HOẠT CHUYỂN ĐỔI SỐ</h1>
+      <h2 class="event-subtitle" id="display-subtitle">CHÍNH QUYỀN SỐ MINH BẠCH - DOANH NGHIỆP BỨT PHÁ - PHỤC VỤ NHÂN DÂN</h2>
+    </header>
+
+    <!-- Khu vực Trung tâm: Bình Nước Năng Lượng Trống Đồng Đông Sơn -->
+    <div class="center-core-container">
+      <div class="core-hologram" id="core-hologram">
+        <!-- Vòng Trống Đồng Đông Sơn ngoài cùng -->
+        <div class="dongson-ring-outer" id="dongson-outer"></div>
+        <div class="dongson-ring-inner"></div>
+        <div class="core-glow"></div>
+        
+        <!-- TRẠNG THÁI 1: ĐẾM NGƯỢC 5-4-3-2-1 CHUẨN KEY MOMENT (VIDEO qyW8818wHhA) -->
+        <div class="core-countdown-state" id="core-countdown-state">
+          <!-- Vòng năng lượng lửa xoay tít -->
+          <div class="countdown-fire-ring"></div>
+          <div class="countdown-orbit-sparks"></div>
+          
+          <!-- Số đếm ngược khổng lồ 3D mạ vàng hoặc Biểu trưng Trống Đồng Đông Sơn lúc chờ -->
+          <div class="countdown-number-wrap">
+            <div class="countdown-big-number" id="countdown-big-number">5</div>
+            <div class="countdown-standby-star" id="countdown-standby-star">
+              <svg viewBox="0 0 160 160" class="standby-star-svg">
+                <!-- Viền bình chứa kim loại mạ vàng -->
+                <circle cx="80" cy="80" r="76" class="vessel-border" />
+                <circle cx="80" cy="80" r="74" class="vessel-inner-dash" />
+                <!-- Họa tiết Ngôi sao vàng & Mặt trời Đông Sơn trang nghiêm -->
+                <polygon points="80,28 92,62 128,62 99,83 110,117 80,96 50,117 61,83 32,62 68,62" class="star-on-water" />
+                <circle cx="80" cy="80" r="14" class="star-core-ring" />
+                <circle cx="80" cy="80" r="6" class="star-core-dot" />
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <!-- TRẠNG THÁI 2: BÌNH NƯỚC NĂNG LƯỢNG VÀNG KIM DÂNG ĐẦY (0% -> 100%) -->
+        <div class="core-lock-state hidden" id="core-lock-state">
+          <div class="liquid-vessel" id="liquid-vessel">
+            <svg class="liquid-svg" viewBox="0 0 160 160">
+              <defs>
+                <clipPath id="core-circle-clip">
+                  <circle cx="80" cy="80" r="74" />
+                </clipPath>
+                <linearGradient id="liquidGoldGrad" x1="0%" y1="100%" x2="0%" y2="0%">
+                  <stop offset="0%" stop-color="#b45309" />
+                  <stop offset="45%" stop-color="#f59e0b" />
+                  <stop offset="80%" stop-color="#ffd700" />
+                  <stop offset="100%" stop-color="#fffbeb" />
+                </linearGradient>
+              </defs>
+
+              <!-- Viền bình chứa kim loại mạ vàng -->
+              <circle cx="80" cy="80" r="76" class="vessel-border" />
+              <circle cx="80" cy="80" r="74" class="vessel-inner-dash" />
+
+              <!-- VÙNG NƯỚC DÂNG (CLIPPED) -->
+              <g clip-path="url(#core-circle-clip)">
+                <!-- Lớp nước nền dâng từ đáy lên đỉnh -->
+                <rect id="liquid-level" x="0" y="160" width="160" height="160" fill="url(#liquidGoldGrad)" />
+                <!-- 2 lớp sóng nước chuyển động sánh ngang -->
+                <path id="liquid-wave-back" d="M 0 160 Q 40 160 80 160 T 160 160 L 160 160 L 0 160 Z" fill="rgba(255, 215, 0, 0.45)" />
+                <path id="liquid-wave-front" d="M 0 160 Q 40 160 80 160 T 160 160 L 160 160 L 0 160 Z" fill="rgba(255, 255, 255, 0.65)" />
+              </g>
+
+              <!-- Họa tiết Ngôi sao vàng & Mặt trời Đông Sơn in nổi trên mặt nước -->
+              <polygon points="80,28 92,62 128,62 99,83 110,117 80,96 50,117 61,83 32,62 68,62" class="star-on-water" />
+              <circle cx="80" cy="80" r="14" class="star-core-ring" />
+              <circle cx="80" cy="80" r="6" class="star-core-dot" />
+            </svg>
+          </div>
+        </div>
+
+        <!-- Trạng thái mở khóa thành công (Vinh quang / Khai mạc) -->
+        <div class="core-unlocked-state" id="core-unlocked-state">
+          <div class="success-logo-wrap">
+            <img id="custom-logo-display" src="" alt="" class="custom-logo hidden">
+            <div id="default-logo-icon" class="default-logo-icon">
+              <!-- Biểu tượng Quốc huy / Cổng Dịch vụ công số -->
+              <svg viewBox="0 0 100 100" class="state-seal-svg">
+                <circle cx="50" cy="50" r="46" class="seal-border" />
+                <circle cx="50" cy="50" r="41" class="seal-border-dash" />
+                <polygon points="50,18 59,38 81,38 63,51 70,72 50,59 30,72 37,51 19,38 41,38" fill="url(#goldGrad)" />
+                <path d="M25 76 Q50 68 75 76" stroke="#fff" stroke-width="2.5" fill="none" />
+                <path d="M28 82 Q50 74 72 82" stroke="#fff" stroke-width="2" fill="none" />
+                <defs>
+                  <linearGradient id="goldGrad" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stop-color="#fff2a3" />
+                    <stop offset="50%" stop-color="#ffd700" />
+                    <stop offset="100%" stop-color="#d97706" />
+                  </linearGradient>
+                </defs>
+              </svg>
+            </div>
+          </div>
+          <div class="unlocked-badge">CHÍNH THỨC KÍCH HOẠT</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- KHU VỰC CÁC BỤC CHẠM TRỐNG ĐỒNG SỐ MẠ VÀNG (ĐÃ NÂNG CAO & CÓ THỂ CHỈNH VỊ TRÍ) -->
+    <div class="touch-zones-container" id="touch-zones">
+      <!-- Sinh động bởi Javascript theo số lượng đại biểu (3, 5, hoặc 7 vị trí) -->
+    </div>
+
+    <!-- SILHOUETTE ĐÔ THỊ THÔNG MINH HIỆN ĐẠI (CHUẨN VIDEO VISUAL KEY MOMENT qyW8818wHhA) -->
+    <div class="city-skyline" id="city-skyline">
+      <svg viewBox="0 0 1920 180" preserveAspectRatio="none" class="skyline-svg">
+        <defs>
+          <linearGradient id="skylineGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="rgba(255, 215, 0, 0.35)" />
+            <stop offset="45%" stop-color="rgba(200, 140, 20, 0.16)" />
+            <stop offset="100%" stop-color="rgba(80, 10, 15, 0.0)" />
+          </linearGradient>
+          <linearGradient id="skylineBorderGrad" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="rgba(255, 215, 0, 0.25)" />
+            <stop offset="50%" stop-color="rgba(255, 245, 175, 0.85)" />
+            <stop offset="100%" stop-color="rgba(255, 215, 0, 0.25)" />
+          </linearGradient>
+        </defs>
+        <path fill="url(#skylineGrad)" d="M0,180 L0,150 L35,150 L35,120 L60,120 L60,150 L95,150 L95,100 L120,100 L120,75 L135,45 L150,75 L150,150 L190,150 L190,125 L215,125 L215,150 L260,150 L260,105 L295,105 L295,70 L320,70 L320,40 L330,10 L340,40 L340,150 L395,150 L395,115 L430,115 L430,150 L480,150 L480,80 L510,80 L510,150 L565,150 L565,105 L600,105 L600,130 L640,130 L640,90 L665,90 L665,55 L680,20 L695,55 L695,150 L745,150 L745,110 L780,110 L780,65 L805,65 L820,30 L835,65 L835,150 L885,150 L885,100 L915,100 L915,150 L970,150 L970,120 L1005,120 L1005,150 L1055,150 L1055,80 L1080,80 L1105,35 L1130,80 L1130,150 L1185,150 L1185,105 L1220,105 L1220,150 L1275,150 L1275,90 L1310,90 L1310,60 L1325,25 L1340,60 L1340,150 L1395,150 L1395,120 L1430,120 L1430,150 L1485,150 L1485,100 L1520,100 L1520,150 L1575,150 L1575,120 L1610,120 L1610,150 L1660,150 L1660,85 L1690,85 L1705,45 L1720,85 L1720,150 L1775,150 L1775,125 L1810,125 L1810,150 L1860,150 L1860,100 L1890,100 L1890,150 L1920,150 L1920,180 Z" />
+        <path stroke="url(#skylineBorderGrad)" stroke-width="1.6" fill="none" d="M0,150 L35,150 L35,120 L60,120 L60,150 L95,150 L95,100 L120,100 L120,75 L135,45 L150,75 L150,150 L190,150 L190,125 L215,125 L215,150 L260,150 L260,105 L295,105 L295,70 L320,70 L320,40 L330,10 L340,40 L340,150 L395,150 L395,115 L430,115 L430,150 L480,150 L480,80 L510,80 L510,150 L565,150 L565,105 L600,105 L600,130 L640,130 L640,90 L665,90 L665,55 L680,20 L695,55 L695,150 L745,150 L745,110 L780,110 L780,65 L805,65 L820,30 L835,65 L835,150 L885,150 L885,100 L915,100 L915,150 L970,150 L970,120 L1005,120 L1005,150 L1055,150 L1055,80 L1080,80 L1105,35 L1130,80 L1130,150 L1185,150 L1185,105 L1220,105 L1220,150 L1275,150 L1275,90 L1310,90 L1310,60 L1325,25 L1340,60 L1340,150 L1395,150 L1395,120 L1430,120 L1430,150 L1485,150 L1485,100 L1520,100 L1520,150 L1575,150 L1575,120 L1610,120 L1610,150 L1660,150 L1660,85 L1690,85 L1705,45 L1720,85 L1720,150 L1775,150 L1775,125 L1810,125 L1810,150 L1860,150 L1860,100 L1890,100 L1890,150 L1920,150" />
+      </svg>
+    </div>
+
+    <!-- MÀN HÌNH VINH DANH CHÚC MỪNG HOÀNH TRÁNG (CHUẨN ĐẠO DIỄN SÂN KHẤU LED CHUYỂN ĐỘNG) -->
+    <div class="celebration-screen hidden" id="celebration-screen">
+      <!-- Khối nội dung vinh danh thoáng rộng trên nền Trống Đồng -->
+      <div class="celebration-content">
+        <!-- Biểu trưng / Logo Đỉnh Cao khi Vinh Danh (Quốc huy / Cổng DVC / Logo đơn vị) -->
+        <div class="celeb-logo-wrap">
+          <img id="celeb-custom-logo" src="" alt="Logo đơn vị" class="celeb-custom-logo hidden">
+          <div id="celeb-default-logo" class="celeb-default-logo">
+            <svg viewBox="0 0 100 100" class="celeb-seal-svg">
+              <circle cx="50" cy="50" r="46" class="seal-border" stroke="#ffd700" stroke-width="2.5" fill="rgba(180, 20, 30, 0.65)" />
+              <circle cx="50" cy="50" r="41" class="seal-border-dash" stroke="#fff2a3" stroke-width="1.5" stroke-dasharray="4 3" fill="none" />
+              <polygon points="50,18 59,38 81,38 63,51 70,72 50,59 30,72 37,51 19,38 41,38" fill="url(#celebGoldGrad)" filter="drop-shadow(0 0 12px #ffd700)" />
+              <path d="M25 76 Q50 68 75 76" stroke="#ffffff" stroke-width="2.5" fill="none" />
+              <path d="M28 82 Q50 74 72 82" stroke="#ffd700" stroke-width="2" fill="none" />
+              <defs>
+                <linearGradient id="celebGoldGrad" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stop-color="#ffffff" />
+                  <stop offset="50%" stop-color="#ffd700" />
+                  <stop offset="100%" stop-color="#d97706" />
+                </linearGradient>
+              </defs>
+            </svg>
+          </div>
+        </div>
+
+        <!-- Dải Ribbon mạ vàng hoàng gia chính thức -->
+        <div class="celebration-tag">
+          <span class="ribbon-star">&#10022;</span>
+          <span class="ribbon-text">NGHI THỨC KÍCH HOẠT HOÀN THÀNH</span>
+          <span class="ribbon-star">&#10022;</span>
+        </div>
+
+        <!-- Tiêu đề lớn 3D Kim loại mạ vàng lấp lánh (Không đóng hộp) -->
+        <h1 class="celebration-title" id="celeb-title">NGHI THỨC KÍCH HOẠT CHUYỂN ĐỔI SỐ THÀNH CÔNG</h1>
+
+        <!-- Đường gạch hoa văn hoàng gia phân cách -->
+        <div class="celeb-divider">
+          <div class="divider-line"></div>
+          <div class="divider-diamond">&#9670;</div>
+          <div class="divider-line"></div>
+        </div>
+
+        <!-- Khẩu hiệu hành động trang nghiêm -->
+        <p class="celebration-desc" id="celeb-desc">CHÀO MỪNG KỶ NGUYÊN SỐ VƯƠN MÌNH - PHÁT TRIỂN VỮNG MẠNH VÀ THỊNH VƯỢNG</p>
+
+        <!-- 3 Trụ cột Chuyển đổi số Quốc gia (Thiết kế tinh gọn, sang trọng) -->
+        <div class="celebration-pillars">
+          <div class="pillar-pill">
+            <span class="pillar-diamond">&#9670;</span>
+            <span class="pillar-text">CHÍNH QUYỀN SỐ</span>
+          </div>
+          <div class="pillar-pill highlight">
+            <span class="pillar-diamond">&#9670;</span>
+            <span class="pillar-text">KINH TẾ SỐ</span>
+          </div>
+          <div class="pillar-pill">
+            <span class="pillar-diamond">&#9670;</span>
+            <span class="pillar-text">XÃ HỘI SỐ</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- BẢNG ĐIỀU KHIỂN DÀNH CHO BÀN KỸ THUẬT SỰ KIỆN (Bấm 'H' để ẩn/hiện) -->
+  <aside class="control-panel" id="control-panel">
+    <div class="panel-header">
+      <div class="panel-title">
+        <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+        BÀN ĐIỀU HÀNH KỸ THUẬT (Phím 'H')
+      </div>
+      <button class="btn-close" id="btn-close-panel" title="Đóng panel (Phím H)">&times;</button>
+    </div>
+
+    <!-- HỆ THỐNG 3 TABS ĐIỀU HÀNH -->
+    <nav class="panel-tabs">
+      <button class="tab-btn active" data-tab="tab-control">🎮 ĐIỀU HÀNH</button>
+      <button class="tab-btn" data-tab="tab-position">📐 CĂN CHỈNH SÂN KHẤU</button>
+      <button class="tab-btn" data-tab="tab-video">🎬 VIDEO NỀN</button>
+      <button class="tab-btn" data-tab="tab-settings">⚙️ CẤU HÌNH</button>
+    </nav>
+
+    <div class="panel-body">
+      <!-- ==================== TAB 1: ĐIỀU HÀNH KHÁNH TIẾT ==================== -->
+      <div class="tab-content active" id="tab-control">
+        <div class="panel-section quick-actions">
+          <label class="section-label">THAO TÁC TRỰC TIẾP</label>
+          <div class="action-grid">
+            <button class="btn-primary" id="btn-trigger-all" title="Phím tắt: SPACE">
+              <span class="icon">&#9654;</span> BẮT ĐẦU NGHI THỨC (Space)
+            </button>
+            <button class="btn-warning" id="btn-reset" title="Phím tắt: R">
+              <span class="icon">&#8635;</span> LÀM LẠI / RESET (R)
+            </button>
+            <button class="btn-secondary" id="btn-fullscreen" title="Phím tắt: F11">
+              <span class="icon">&#x26F6;</span> TOÀN MÀN HÌNH (F11)
+            </button>
+            <button class="btn-secondary" id="btn-audio-toggle" title="Phím tắt: M">
+              <span class="icon" id="audio-icon">&#128266;</span> ÂM THANH: BẬT
+            </button>
+            <button class="btn-secondary" id="btn-preview-finale" title="Bật/tắt xem trước màn hình vinh danh">
+              <span class="icon">&#127942;</span> XEM MÀN VINH DANH
+            </button>
+          </div>
+        </div>
+
+        <div class="panel-section">
+          <label class="section-label">ÂM LƯỢNG KẾT NỐI MIXER SÂN KHẤU</label>
+          <div class="slider-control-row">
+            <label>Âm lượng tổng (Mixer Master Out): <span id="val-volume">80%</span></label>
+            <input type="range" id="range-volume" min="0" max="100" value="80">
+          </div>
+          <button class="btn-secondary btn-small" id="btn-test-audio" style="margin-top: 8px;">
+            <span class="icon">&#128276;</span> Thử âm thanh Fanfare
+          </button>
+        </div>
+
+        <div class="panel-section export-video-box">
+          <label class="section-label">XUẤT VIDEO DỰ PHÒNG CHO VMIX</label>
+          <p class="section-tip">Xuất video chuẩn 60fps Full HD có sẵn hiệu ứng:</p>
+          <button class="btn-export" id="btn-export-video">
+            <span class="icon">&#128249;</span> GHI VÀ TẢI VIDEO MP4
+          </button>
+          <div id="export-status" class="export-status hidden">Đang ghi hình... Vui lòng đợi</div>
+        </div>
+      </div>
+
+      <!-- ==================== TAB 2: ĐIỀU CHỈNH VỊ TRÍ & SỐ LƯỢNG BỤC CHẠM ==================== -->
+      <div class="tab-content" id="tab-position">
+        <div class="panel-section">
+          <label class="section-label">SỐ LƯỢNG ĐẠI BIỂU / BỤC CHẠM (1 - 12 NGƯỜI)</label>
+          <p class="section-tip">Chọn nhanh hoặc bấm +/- để khớp chính xác số lượng lãnh đạo tham gia:</p>
+          
+          <div class="participant-picker-wrap">
+            <div class="stepper-row">
+              <button class="stepper-btn btn-count-minus" title="Giảm số lượng">&#8722;</button>
+              <div class="stepper-display stepper-display-count">5 Lãnh đạo</div>
+              <button class="stepper-btn btn-count-plus" title="Tăng số lượng">&#43;</button>
+            </div>
+            <div class="participant-grid">
+              <button data-count="1">1</button>
+              <button data-count="2">2</button>
+              <button data-count="3">3</button>
+              <button data-count="4">4</button>
+              <button data-count="5" class="active">5</button>
+              <button data-count="6">6</button>
+              <button data-count="7">7</button>
+              <button data-count="8">8</button>
+              <button data-count="9">9</button>
+              <button data-count="10">10</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel-section">
+          <label class="section-label">THIẾT LẬP VỊ TRÍ & KÍCH THƯỚC BỤC CHẠM TAY</label>
+          <p class="section-tip">Kéo chỉnh trực tiếp để vừa vặn tầm tay và chiều cao bục gỗ sân khấu thực tế:</p>
+          
+          <div class="slider-control-row">
+            <label>Độ cao bục chạm (Nâng lên / Hạ xuống): <span id="val-pod-y">-60px</span></label>
+            <input type="range" id="range-pod-y" min="-220" max="80" value="-60" step="2">
+          </div>
+
+          <div class="slider-control-row">
+            <label>Kích thước bục chạm (Đường kính): <span id="val-pod-size">110px</span></label>
+            <input type="range" id="range-pod-size" min="60" max="200" value="110" step="2">
+          </div>
+
+          <div class="slider-control-row">
+            <label>Khoảng cách giữa các bục (Khoảng cách đứng): <span id="val-pod-gap">38px</span></label>
+            <input type="range" id="range-pod-gap" min="8" max="110" value="38" step="1">
+          </div>
+
+          <button class="btn-secondary btn-small" id="btn-reset-position" style="margin-top: 10px;">
+            Khôi phục vị trí & kích thước mặc định
+          </button>
+        </div>
+
+        <div class="panel-section">
+          <label class="section-label">CĂN CHỈNH VỊ TRÍ & KÍCH THƯỚC TÂM NĂNG LƯỢNG (CORE)</label>
+          <p class="section-tip">Điều chỉnh vị trí và độ lớn của Vòng Năng Lượng / Đếm Ngược để vừa khớp với tầm nhìn và khung màn LED:</p>
+          
+          <div class="slider-control-row">
+            <label>Độ cao tâm trung tâm (Nâng lên / Hạ xuống): <span id="val-core-y">0px</span></label>
+            <input type="range" id="range-core-y" min="-220" max="220" value="0" step="2">
+          </div>
+
+          <div class="slider-control-row">
+            <label>Kích thước tâm trung tâm (Thu nhỏ / Phóng to): <span id="val-core-scale">100%</span></label>
+            <input type="range" id="range-core-scale" min="60" max="170" value="100" step="2">
+          </div>
+
+          <button class="btn-secondary btn-small" id="btn-reset-core-position" style="margin-top: 10px;">
+            Khôi phục vị trí & kích thước tâm mặc định
+          </button>
+        </div>
+      </div>
+
+      <!-- ==================== TAB 3: VIDEO BACKGROUND (TRỐNG ĐỒNG BẢN ĐỒ VN) ==================== -->
+      <div class="tab-content" id="tab-video">
+        <div class="panel-section">
+          <div class="toggle-switch-row">
+            <label class="section-label">KÍCH HOẠT VIDEO BACKGROUND</label>
+            <label class="switch">
+              <input type="checkbox" id="toggle-video-bg" checked>
+              <span class="slider round"></span>
+            </label>
+          </div>
+          <p class="section-tip">Video đã được phóng to 125% để che triệt để 100% nút và tiêu đề YouTube.</p>
+        </div>
+
+        <div class="panel-section" id="video-source-section">
+          <label class="section-label">CHỌN NHANH VIDEO NỀN SỰ KIỆN</label>
+          <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px;">
+            <button class="btn-secondary" id="btn-preset-dongson" style="text-align: left; padding: 9px 12px; border-left: 3px solid #ffd700;">
+              <strong style="color: #ffd700;">🏛️ 1. Trống Đồng & Bản Đồ Việt Nam (Mẫu sbDz4hoZWCk - Khuyên dùng)</strong><br>
+              <small style="opacity: 0.85; font-size: 0.78rem;">Chuẩn Lễ tân Nhà nước • Hoạt động ổn định 100%, không quảng cáo</small>
+            </button>
+            <button class="btn-secondary" id="btn-preset-keymoment" style="text-align: left; padding: 9px 12px; border-left: 3px solid #ff9100;">
+              <strong style="color: #ffcc80;">✨ 2. Visual Key Moment Khai Trương (Mẫu qyW8818wHhA)</strong><br>
+              <small style="opacity: 0.85; font-size: 0.78rem;">Video tham khảo animation • Lưu ý: Kênh YouTube gốc có thể giới hạn nhúng</small>
+            </button>
+          </div>
+
+          <label class="section-label">TÙY CHỈNH NGUỒN PHÁT KHÁC</label>
+          
+          <div class="radio-option">
+            <input type="radio" id="src-youtube" name="video-src" value="youtube" checked>
+            <label for="src-youtube">
+              <strong>1. Link hoặc ID YouTube Tự Chọn</strong>
+            </label>
+          </div>
+
+          <div class="input-group yt-input-wrap">
+            <label>Mã Video hoặc Link YouTube:</label>
+            <input type="text" id="input-yt-id" value="sbDz4hoZWCk" placeholder="sbDz4hoZWCk">
+            <button class="btn-secondary btn-small" id="btn-load-yt">Áp dụng Video</button>
+          </div>
+
+          <div class="radio-option" style="margin-top: 12px;">
+            <input type="radio" id="src-local" name="video-src" value="local">
+            <label for="src-local">
+              <strong>2. File MP4 Nội Bộ (Dự phòng an toàn Offline)</strong>
+              <small>(Tải trực tiếp video từ máy tính, không sợ mất mạng)</small>
+            </label>
+          </div>
+
+          <div class="input-group local-input-wrap" id="local-file-wrap">
+            <label>Chọn tệp video MP4 từ máy tính:</label>
+            <input type="file" id="input-local-video" accept="video/mp4,video/webm">
+          </div>
+        </div>
+
+        <div class="panel-section">
+          <label class="section-label">ĐỘ SÁNG MÀN HÌNH LED (CHUẨN CHỤP ẢNH & CHỐNG CHÓI)</label>
+          <p class="section-tip">Khuyến nghị mức 65% - 75% để ống kính máy ảnh không bị cháy sáng mặt Lãnh đạo:</p>
+          
+          <div class="slider-control-row">
+            <label>Độ sáng tổng thể màn LED: <span id="val-brightness">72%</span></label>
+            <input type="range" id="range-brightness" min="40" max="100" value="72" step="1">
+          </div>
+
+          <div class="btn-group-toggle" style="margin-top: 8px;" id="group-brightness-preset">
+            <button data-brightness="65">65% (Dịu nhẹ)</button>
+            <button data-brightness="72" class="active">72% (Chuẩn Photo)</button>
+            <button data-brightness="85">85% (Tiêu chuẩn)</button>
+            <button data-brightness="100">100% (Tối đa)</button>
+          </div>
+
+          <div class="toggle-switch-row" style="margin-top: 12px;">
+            <label style="font-size: 0.85rem; color: #fff;">Tự động cân bằng sáng chống lóa khi Mở Khóa:</label>
+            <label class="switch">
+              <input type="checkbox" id="toggle-photo-dim" checked>
+              <span class="slider round"></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="panel-section">
+          <label class="section-label">HIỆU CHỈNH ĐỘ SÁNG & TƯƠNG PHẢN VIDEO NỀN</label>
+          <div class="slider-control-row">
+            <label>Độ trong suốt video (Opacity): <span id="val-opacity">65%</span></label>
+            <input type="range" id="range-opacity" min="20" max="100" value="65">
+          </div>
+          <div class="slider-control-row">
+            <label>Độ phủ tối nền (Tint Darkness): <span id="val-tint">45%</span></label>
+            <input type="range" id="range-tint" min="0" max="85" value="45">
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== TAB 4: CẤU HÌNH SỰ KIỆN ==================== -->
+      <div class="tab-content" id="tab-settings">
+        <div class="panel-section">
+          <label class="section-label">KIỂU HOẠT ẢNH TRUNG TÂM (ANIMATION STYLE)</label>
+          <div class="setting-row">
+            <span>Kiểu hiệu ứng:</span>
+            <div class="btn-group-toggle" id="group-animation-style">
+              <button data-style="keymoment" class="active" title="Chuẩn Video qyW8818wHhA">✨ Đếm 5-4-3-2-1 & Dải Lụa</button>
+              <button data-style="liquid" title="Bình nước Đông Sơn dâng đầy">🌊 Bình Nước Đông Sơn</button>
+            </div>
+          </div>
+
+          <label class="section-label" style="margin-top: 14px;">PHONG CÁCH & MÀU SẮC</label>
+          <div class="setting-row">
+            <span>Tông màu nghi lễ:</span>
+            <div class="btn-group-toggle" id="group-theme-color">
+              <button data-theme="theme-state-red-gold" class="active">Đỏ & Vàng Kim</button>
+              <button data-theme="theme-state-blue-gold">Xanh Dịch Vụ Công</button>
+            </div>
+          </div>
+
+          <div class="setting-row">
+            <span>Số đại biểu cùng chạm tay (1 - 12):</span>
+            <div class="participant-picker-wrap">
+              <div class="stepper-row">
+                <button class="stepper-btn btn-count-minus" title="Giảm số lượng">&#8722;</button>
+                <div class="stepper-display stepper-display-count">5 Lãnh đạo</div>
+                <button class="stepper-btn btn-count-plus" title="Tăng số lượng">&#43;</button>
+              </div>
+              <div class="participant-grid">
+                <button data-count="1">1</button>
+                <button data-count="2">2</button>
+                <button data-count="3">3</button>
+                <button data-count="4">4</button>
+                <button data-count="5" class="active">5</button>
+                <button data-count="6">6</button>
+                <button data-count="7">7</button>
+                <button data-count="8">8</button>
+                <button data-count="9">9</button>
+                <button data-count="10">10</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="setting-row">
+            <span>Thời gian nạp nghi thức:</span>
+            <select id="select-duration">
+              <option value="3000">3 Giây (Nhanh)</option>
+              <option value="5000" selected>5 Giây (Chuẩn MC đếm 5-4-3-2-1)</option>
+              <option value="7000">7 Giây (Hào hùng trang nghiêm)</option>
+            </select>
+          </div>
+
+          <div class="toggle-switch-row" style="margin-top: 10px;">
+            <label style="font-size: 0.85rem; color: #fff;">Hiển thị tiêu đề đầu trang (Mặc định ẩn):</label>
+            <label class="switch">
+              <input type="checkbox" id="toggle-show-header">
+              <span class="slider round"></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="panel-section">
+          <label class="section-label">THÔNG TIN ĐƠN VỊ & KHẨU HIỆU</label>
+          <div class="input-group">
+            <label>Cơ quan chỉ đạo / Đơn vị tổ chức:</label>
+            <input type="text" id="input-badge" value="ỦY BAN NHÂN DÂN • NGÀY HỘI CÔNG NGHỆ SỐ">
+          </div>
+          <div class="input-group">
+            <label>Tên nghi thức chính:</label>
+            <input type="text" id="input-title" value="NGHI THỨC KÍCH HOẠT CHUYỂN ĐỔI SỐ">
+          </div>
+          <div class="input-group">
+            <label>Khẩu hiệu / Slogan chính thức:</label>
+            <input type="text" id="input-subtitle" value="CHÍNH QUYỀN SỐ MINH BẠCH - DOANH NGHIỆP BỨT PHÁ - PHỤC VỤ NHÂN DÂN">
+          </div>
+          <div class="input-group">
+            <label>Tải lên Logo Tỉnh / Bộ / Cổng DVC (PNG trong suốt):</label>
+            <input type="file" id="input-logo" accept="image/*">
+          </div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Nút tròn góc màn hình để mở lại bảng kỹ thuật khi đang ẩn -->
+  <button class="btn-floating-settings" id="btn-floating-settings" title="Mở bảng điều hành kỹ thuật (Phím H)">
+    <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" fill="none" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+  </button>
+
+  <!-- YouTube Iframe API -->
+  <script src="https://www.youtube.com/iframe_api"></script>
+  <script src="app.js"></script>
+</body>
+</html>

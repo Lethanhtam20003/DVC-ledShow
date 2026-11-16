@@ -1,0 +1,71 @@
+@import "tailwindcss";
+
+@keyframes floatSlow {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    opacity: 0.75;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.04);
+  }
+}
+
+@keyframes countPop {
+  0% {
+    opacity: 0;
+    transform: scale(1.65) translateZ(60px);
+    filter: blur(8px);
+  }
+  25% {
+    opacity: 1;
+    transform: scale(1) translateZ(0px);
+    filter: blur(0px);
+  }
+  85% {
+    opacity: 1;
+    transform: scale(0.96);
+  }
+  100% {
+    opacity: 0.35;
+    transform: scale(0.88);
+  }
+}
+
+.animate-float-slow {
+  animation: floatSlow 5s ease-in-out infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulseGlow 2.4s ease-in-out infinite;
+}
+
+.animate-count-pop {
+  animation: countPop 0.95s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.gold-3d-text {
+  background: linear-gradient(180deg, #fffbe6 0%, #fde047 38%, #d97706 78%, #fef08a 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 8px 24px rgba(245, 197, 66, 0.45));
+}
+
+.cyan-3d-text {
+  background: linear-gradient(180deg, #ecfeff 0%, #67e8f9 42%, #0284c7 82%, #bae6fd 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 8px 24px rgba(56, 189, 248, 0.45));
+}
+
