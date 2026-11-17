@@ -5,12 +5,79 @@ import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { getPatternById } from '../../shared/patterns';
 import {
   createBuildingFacadeTexture,
   createFloorGlowTexture,
   createGlowParticleTexture,
 } from './threeAssets';
+
+const TEXTURE_KEYS = [
+  'map',
+  'normalMap',
+  'roughnessMap',
+  'metalnessMap',
+  'emissiveMap',
+  'aoMap',
+  'bumpMap',
+  'alphaMap',
+  'lightMap',
+  'envMap',
+  'specularMap',
+];
+
+function disposeMaterial(mat) {
+  if (!mat) return;
+  TEXTURE_KEYS.forEach((key) => {
+    if (mat[key] && typeof mat[key].dispose === 'function') {
+      mat[key].dispose();
+    }
+  });
+  mat.dispose();
+}
+
+function disposeObject3D(root) {
+  if (!root) return;
+  root.traverse((obj) => {
+    if (obj.geometry) obj.geometry.dispose();
+    if (obj.material) {
+      if (Array.isArray(obj.material)) {
+        obj.material.forEach(disposeMaterial);
+      } else {
+        disposeMaterial(obj.material);
+      }
+    }
+  });
+}
+
+function createCurvedPetalGeometry(length = 1.45, width = 0.44) {
+  const shape = new THREE.Shape();
+  shape.moveTo(0, 0);
+  shape.bezierCurveTo(width, length * 0.25, width * 0.86, length * 0.72, 0, length);
+  shape.bezierCurveTo(-width * 0.86, length * 0.72, -width, length * 0.25, 0, 0);
+
+  const geo = new THREE.ExtrudeGeometry(shape, {
+    depth: 0.035,
+    bevelEnabled: true,
+    bevelThickness: 0.018,
+    bevelSize: 0.018,
+    bevelSegments: 2,
+    curveSegments: 14,
+  });
+
+  const pos = geo.attributes.position;
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i);
+    const y = pos.getY(i);
+    const z = pos.getZ(i);
+    const cupZ = -(y * y) * 0.12 + (x * x) * 0.22;
+    pos.setZ(i, z + cupZ);
+  }
+  pos.needsUpdate = true;
+  geo.computeVertexNormals();
+  return geo;
+}
 
 function buildCenterpiece(patternId, colors, disposableTextures) {
   const group = new THREE.Group();
@@ -272,6 +339,312 @@ function buildCenterpiece(patternId, colors, disposableTextures) {
     cityGroup.add(haloRing, skyOrbitRing);
     group.add(cityGroup);
     group.userData = { cityGroup, haloRing, skyOrbitRing };
+  } else if (patternId === 'lotus-3d') {
+    // Hoa Sen Vang 3D: layered curved lotus petals in gold/amber/rose-gold + radiant stamen core + orbital halos
+    const lotusGroup = new THREE.Group();
+    lotusGroup.position.y = -0.35;
+
+    const goldPetalMat = new THREE.MeshPhysicalMaterial({
+      color: primaryColor.clone().lerp(new THREE.Color('#ffd54f'), 0.4),
+      emissive: secondaryColor.clone().lerp(new THREE.Color('#ff8f00'), 0.45),
+      emissiveIntensity: 0.36,
+      metalness: 0.78,
+      roughness: 0.18,
+      clearcoat: 0.9,
+      clearcoatRoughness: 0.12,
+      side: THREE.DoubleSide,
+    });
+
+    const roseGoldPetalMat = new THREE.MeshPhysicalMaterial({
+      color: primaryColor.clone().lerp(new THREE.Color('#ff9e80'), 0.45),
+      emissive: new THREE.Color('#ff6e40'),
+      emissiveIntensity: 0.32,
+      metalness: 0.72,
+      roughness: 0.2,
+      clearcoat: 0.85,
+      side: THREE.DoubleSide,
+    });
+
+    const innerPetalMat = new THREE.MeshPhysicalMaterial({
+      color: new THREE.Color('#fff3c4'),
+      emissive: accentColor.clone().lerp(new THREE.Color('#ffb300'), 0.5),
+      emissiveIntensity: 0.55,
+      metalness: 0.65,
+      roughness: 0.14,
+      clearcoat: 1.0,
+      side: THREE.DoubleSide,
+    });
+
+    const outerPetalGeo = createCurvedPetalGeometry(1.65, 0.48);
+    const midPetalGeo = createCurvedPetalGeometry(1.38, 0.4);
+    const innerPetalGeo = createCurvedPetalGeometry(1.08, 0.32);
+
+    const outerPetals = new THREE.Group();
+    for (let i = 0; i < 12; i++) {
+      const a = (i / 12) * Math.PI * 2;
+      const pivot = new THREE.Group();
+      pivot.rotation.y = a;
+      const petal = new THREE.Mesh(outerPetalGeo, goldPetalMat);
+      petal.position.set(0, 0, 0.52);
+      petal.rotation.x = 0.96;
+      pivot.add(petal);
+      outerPetals.add(pivot);
+    }
+
+    const midPetals = new THREE.Group();
+    for (let i = 0; i < 10; i++) {
+      const a = (i / 10) * Math.PI * 2 + Math.PI / 10;
+      const pivot = new THREE.Group();
+      pivot.rotation.y = a;
+      const petal = new THREE.Mesh(midPetalGeo, roseGoldPetalMat);
+      petal.position.set(0, 0.08, 0.38);
+      petal.rotation.x = 0.64;
+      pivot.add(petal);
+      midPetals.add(pivot);
+    }
+
+    const innerPetals = new THREE.Group();
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 8) * Math.PI * 2;
+      const pivot = new THREE.Group();
+      pivot.rotation.y = a;
+      const petal = new THREE.Mesh(innerPetalGeo, innerPetalMat);
+      petal.position.set(0, 0.16, 0.24);
+      petal.rotation.x = 0.34;
+      pivot.add(petal);
+      innerPetals.add(pivot);
+    }
+
+    // Golden calyx pedestal ring
+    const calyxBase = new THREE.Mesh(
+      new THREE.TorusGeometry(0.62, 0.06, 16, 64),
+      solidGoldMat
+    );
+    calyxBase.rotation.x = Math.PI / 2;
+    calyxBase.position.y = -0.02;
+
+    // Radiant stamen core + filaments
+    const stamenCore = new THREE.Mesh(
+      new THREE.SphereGeometry(0.42, 32, 32),
+      new THREE.MeshStandardMaterial({
+        color: new THREE.Color('#fff8e1'),
+        emissive: new THREE.Color('#ffca28'),
+        emissiveIntensity: 1.15,
+        metalness: 0.3,
+        roughness: 0.15,
+      })
+    );
+    stamenCore.position.y = 0.52;
+
+    const stamenRing = new THREE.Group();
+    stamenRing.position.y = 0.42;
+    const filamentGeo = new THREE.CylinderGeometry(0.012, 0.018, 0.45, 8);
+    const tipGeo = new THREE.SphereGeometry(0.045, 10, 10);
+    for (let i = 0; i < 16; i++) {
+      const a = (i / 16) * Math.PI * 2;
+      const fPivot = new THREE.Group();
+      fPivot.rotation.y = a;
+      const filament = new THREE.Mesh(filamentGeo, solidGoldMat);
+      filament.position.set(0, 0.22, 0.46);
+      filament.rotation.x = 0.28;
+      const tip = new THREE.Mesh(tipGeo, ringMat);
+      tip.position.set(0, 0.44, 0.52);
+      fPivot.add(filament, tip);
+      stamenRing.add(fPivot);
+    }
+
+    const haloRing1 = new THREE.Mesh(
+      new THREE.TorusGeometry(2.38, 0.024, 16, 112),
+      ringMat
+    );
+    haloRing1.position.y = 0.45;
+    haloRing1.rotation.x = Math.PI / 2.6;
+
+    const haloRing2 = new THREE.Mesh(
+      new THREE.TorusGeometry(2.68, 0.018, 16, 112),
+      solidGoldMat
+    );
+    haloRing2.position.y = 0.45;
+    haloRing2.rotation.x = -Math.PI / 3.2;
+    haloRing2.rotation.y = Math.PI / 5;
+
+    lotusGroup.add(
+      calyxBase,
+      outerPetals,
+      midPetals,
+      innerPetals,
+      stamenCore,
+      stamenRing,
+      haloRing1,
+      haloRing2
+    );
+    group.add(lotusGroup);
+    group.userData = {
+      lotusGroup,
+      outerPetals,
+      midPetals,
+      innerPetals,
+      stamenCore,
+      stamenRing,
+      haloRing1,
+      haloRing2,
+    };
+  } else if (patternId === 'golden-star') {
+    // Ngoi Sao Vang 3D: extruded/faceted 5-point 3D star + inner wireframe star + rotating orbital rings
+    const starGroup = new THREE.Group();
+    const starShape = new THREE.Shape();
+    const points = 5;
+    const outerR = 1.82;
+    const innerR = 0.76;
+    for (let i = 0; i < points * 2; i++) {
+      const r = i % 2 === 0 ? outerR : innerR;
+      const angle = (i * Math.PI) / points + Math.PI / 2;
+      const x = Math.cos(angle) * r;
+      const y = Math.sin(angle) * r;
+      if (i === 0) starShape.moveTo(x, y);
+      else starShape.lineTo(x, y);
+    }
+    starShape.closePath();
+
+    const starGeo = new THREE.ExtrudeGeometry(starShape, {
+      depth: 0.14,
+      bevelEnabled: true,
+      bevelThickness: 0.28,
+      bevelSize: 0.06,
+      bevelSegments: 1,
+    });
+    starGeo.center();
+
+    const starMat = new THREE.MeshPhysicalMaterial({
+      color: primaryColor.clone().lerp(new THREE.Color('#ffd740'), 0.5),
+      emissive: secondaryColor.clone().lerp(new THREE.Color('#ff8f00'), 0.35),
+      emissiveIntensity: 0.42,
+      metalness: 0.92,
+      roughness: 0.14,
+      clearcoat: 1.0,
+      flatShading: true,
+    });
+
+    const starMesh = new THREE.Mesh(starGeo, starMat);
+    const starWire = new THREE.Mesh(starGeo, wireMat);
+    starWire.scale.setScalar(1.14);
+
+    const starCore = new THREE.Mesh(
+      new THREE.OctahedronGeometry(0.42, 0),
+      new THREE.MeshStandardMaterial({
+        color: new THREE.Color('#fff9c4'),
+        emissive: accentColor,
+        emissiveIntensity: 1.1,
+        metalness: 0.5,
+        roughness: 0.1,
+      })
+    );
+    starCore.position.z = 0.28;
+
+    const ring1 = new THREE.Mesh(
+      new THREE.TorusGeometry(2.38, 0.024, 16, 112),
+      ringMat
+    );
+    ring1.rotation.x = Math.PI / 3;
+
+    const ring2 = new THREE.Mesh(
+      new THREE.TorusGeometry(2.68, 0.018, 16, 112),
+      solidGoldMat
+    );
+    ring2.rotation.y = Math.PI / 3;
+    ring2.rotation.x = -Math.PI / 4;
+
+    const orbNode1 = new THREE.Mesh(new THREE.OctahedronGeometry(0.1, 0), ringMat);
+    orbNode1.position.set(2.38, 0, 0);
+    ring1.add(orbNode1);
+
+    const orbNode2 = new THREE.Mesh(new THREE.OctahedronGeometry(0.09, 0), ringMat);
+    orbNode2.position.set(-2.68, 0, 0);
+    ring2.add(orbNode2);
+
+    starGroup.add(starMesh, starWire, starCore, ring1, ring2);
+    group.add(starGroup);
+    group.userData = { starGroup, starMesh, starWire, starCore, ring1, ring2 };
+  } else if (patternId === 'ai-cube') {
+    // Chip AI & Lap Phuong So: nested glowing tech cubes, wireframe cage, circuit/data rings, floating corner nodes
+    const aiGroup = new THREE.Group();
+
+    const innerCube = new THREE.Mesh(
+      new THREE.BoxGeometry(0.92, 0.92, 0.92),
+      new THREE.MeshStandardMaterial({
+        color: accentColor,
+        emissive: primaryColor,
+        emissiveIntensity: 0.95,
+        metalness: 0.55,
+        roughness: 0.15,
+      })
+    );
+
+    const midCube = new THREE.Mesh(
+      new THREE.BoxGeometry(1.56, 1.56, 1.56),
+      new THREE.MeshPhysicalMaterial({
+        color: secondaryColor,
+        emissive: primaryColor,
+        emissiveIntensity: 0.35,
+        metalness: 0.25,
+        roughness: 0.1,
+        clearcoat: 1.0,
+        transparent: true,
+        opacity: 0.42,
+      })
+    );
+
+    const outerCage = new THREE.Mesh(
+      new THREE.BoxGeometry(2.15, 2.15, 2.15),
+      wireMat
+    );
+
+    // 8 floating corner nodes
+    const cornerNodes = new THREE.Group();
+    const nodeGeo = new THREE.OctahedronGeometry(0.14, 0);
+    const offsets = [-1.28, 1.28];
+    offsets.forEach((x) => {
+      offsets.forEach((y) => {
+        offsets.forEach((z) => {
+          const node = new THREE.Mesh(nodeGeo, solidGoldMat);
+          node.position.set(x, y, z);
+          cornerNodes.add(node);
+        });
+      });
+    });
+
+    const dataRing1 = new THREE.Mesh(
+      new THREE.TorusGeometry(2.48, 0.022, 16, 112),
+      ringMat
+    );
+    dataRing1.rotation.x = Math.PI / 2.3;
+
+    const dataRing2 = new THREE.Mesh(
+      new THREE.TorusGeometry(2.76, 0.018, 16, 112),
+      solidGoldMat
+    );
+    dataRing2.rotation.y = Math.PI / 2.6;
+    dataRing2.rotation.x = -Math.PI / 5;
+
+    const packet1 = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.14, 0.14), ringMat);
+    packet1.position.set(2.48, 0, 0);
+    dataRing1.add(packet1);
+
+    const packet2 = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, 0.12), ringMat);
+    packet2.position.set(-2.76, 0, 0);
+    dataRing2.add(packet2);
+
+    aiGroup.add(innerCube, midCube, outerCage, cornerNodes, dataRing1, dataRing2);
+    group.add(aiGroup);
+    group.userData = {
+      aiGroup,
+      innerCube,
+      midCube,
+      outerCage,
+      cornerNodes,
+      dataRing1,
+      dataRing2,
+    };
   } else {
     // Detailed 3D Crystal Energy Core (used for 'crystal-core' and 'custom-ceremony')
     const crystalMat = new THREE.MeshPhysicalMaterial({
@@ -344,6 +717,9 @@ export default function ThreeStage({
   coreY = 0,
   coreScale = 1,
   hideCenterpiece = false,
+  custom3dModelType = 'preset',
+  custom3dModelId = 'crystal-core',
+  custom3dModelUrl = null,
 }) {
   const containerRef = useRef(null);
   const stateRef = useRef({ phase, progress, coreY, coreScale, hideCenterpiece });
@@ -352,6 +728,14 @@ export default function ThreeStage({
     stateRef.current = { phase, progress, coreY, coreScale, hideCenterpiece };
   }, [phase, progress, coreY, coreScale, hideCenterpiece]);
 
+  const isCustomCeremony = patternId === 'custom-ceremony';
+  const effectiveModelType = isCustomCeremony ? custom3dModelType : 'preset';
+  const effectiveModelId = isCustomCeremony
+    ? custom3dModelId || 'crystal-core'
+    : patternId;
+  const effectiveModelUrl =
+    isCustomCeremony && custom3dModelType === 'uploaded' ? custom3dModelUrl : null;
+
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -359,6 +743,14 @@ export default function ThreeStage({
     const pattern = getPatternById(patternId);
     const { colors } = pattern;
     const disposableTextures = [];
+    const isNoneModel = isCustomCeremony && effectiveModelType === 'none';
+    const isUploadedModel =
+      isCustomCeremony &&
+      effectiveModelType === 'uploaded' &&
+      Boolean(effectiveModelUrl);
+    const activeModelId = isCustomCeremony
+      ? effectiveModelId || 'crystal-core'
+      : patternId;
 
     const scene = new THREE.Scene();
     scene.fog = new THREE.FogExp2(colors.bgBottom, 0.04);
@@ -464,7 +856,65 @@ export default function ThreeStage({
     scene.add(floorRingGroup);
 
     // Centerpiece 3D Group
-    const centerpiece = buildCenterpiece(patternId, colors, disposableTextures);
+    let mixer = null;
+    let isDisposed = false;
+    let centerpiece;
+
+    if (isNoneModel) {
+      centerpiece = new THREE.Group();
+      centerpiece.visible = false;
+    } else if (isUploadedModel) {
+      centerpiece = new THREE.Group();
+      const uploadedWrapper = new THREE.Group();
+      centerpiece.add(uploadedWrapper);
+
+      const gltfLoader = new GLTFLoader();
+      gltfLoader.load(
+        effectiveModelUrl,
+        (gltf) => {
+          if (isDisposed) {
+            disposeObject3D(gltf.scene);
+            return;
+          }
+          const modelRoot = gltf.scene;
+          const normGroup = new THREE.Group();
+          normGroup.add(modelRoot);
+          normGroup.updateMatrixWorld(true);
+
+          const box = new THREE.Box3().setFromObject(normGroup);
+          const size = new THREE.Vector3();
+          const center = new THREE.Vector3();
+          box.getSize(size);
+          box.getCenter(center);
+
+          const maxDim = Math.max(size.x, size.y, size.z);
+          if (maxDim > 0 && Number.isFinite(maxDim)) {
+            const scale = 3.2 / maxDim;
+            normGroup.scale.setScalar(scale);
+            normGroup.position.set(
+              -center.x * scale,
+              -center.y * scale,
+              -center.z * scale
+            );
+          }
+
+          uploadedWrapper.add(normGroup);
+
+          if (gltf.animations && gltf.animations.length > 0) {
+            mixer = new THREE.AnimationMixer(modelRoot);
+            gltf.animations.forEach((clip) => {
+              mixer.clipAction(clip).play();
+            });
+          }
+        },
+        undefined,
+        (err) => {
+          console.error('Failed to load custom 3D model:', err);
+        }
+      );
+    } else {
+      centerpiece = buildCenterpiece(activeModelId, colors, disposableTextures);
+    }
     scene.add(centerpiece);
 
     // 3D Shockwave Ring triggered when entering celebration
@@ -578,57 +1028,129 @@ export default function ThreeStage({
       floorMesh.rotation.z = t * 0.03 * speedMul;
       floorRingGroup.rotation.y = -t * 0.08 * speedMul;
 
-      const targetVisibleScale = isCeleb || hideCore ? 0.001 : cScale;
-      const nextScale = THREE.MathUtils.damp(
-        centerpiece.scale.x,
-        targetVisibleScale,
-        6.5,
-        dt
-      );
-      centerpiece.scale.setScalar(nextScale);
+      if (mixer) {
+        mixer.update(dt * (isCharging ? 1 + (curProg / 100) * 1.4 : 1));
+      }
 
-      const baseLiftY = patternId === 'holo-globe' ? 0.72 : 0.45;
-      centerpiece.position.y = THREE.MathUtils.damp(
-        centerpiece.position.y,
-        baseLiftY - cY * 0.008,
-        7.5,
-        dt
-      );
+      if (!isNoneModel) {
+        const pulseScale =
+          isUploadedModel && isCharging
+            ? 1 + Math.sin(t * 7.5) * (0.025 + (curProg / 100) * 0.045)
+            : 1;
+        const targetVisibleScale =
+          isCeleb || hideCore ? 0.001 : cScale * pulseScale;
+        const nextScale = THREE.MathUtils.damp(
+          centerpiece.scale.x,
+          targetVisibleScale,
+          6.5,
+          dt
+        );
+        centerpiece.scale.setScalar(nextScale);
 
-      const ud = centerpiece.userData;
-      if (patternId === 'dong-son') {
-        if (ud.coreDisc) ud.coreDisc.rotation.z = t * 0.09 * speedMul;
-        if (ud.backHaloDisc) ud.backHaloDisc.rotation.z = -t * 0.05 * speedMul;
-        if (ud.orbitRing1) {
-          ud.orbitRing1.rotation.y = t * 0.4 * speedMul;
-          ud.orbitRing1.rotation.x = Math.PI / 3 + Math.sin(t * 0.5) * 0.14;
+        const baseLiftY = activeModelId === 'holo-globe' ? 0.72 : 0.45;
+        const levitateOffset = isUploadedModel
+          ? isCeleb
+            ? 2.1
+            : Math.sin(t * 1.4) * 0.12
+          : isCeleb
+            ? 1.4
+            : 0;
+        centerpiece.position.y = THREE.MathUtils.damp(
+          centerpiece.position.y,
+          baseLiftY - cY * 0.008 + levitateOffset,
+          7.5,
+          dt
+        );
+
+        if (isUploadedModel) {
+          const rotSpeed = isCeleb
+            ? 2.4
+            : isCharging
+              ? 0.45 + (curProg / 100) * 2.2
+              : 0.32;
+          centerpiece.rotation.y += dt * rotSpeed;
+        } else {
+          const ud = centerpiece.userData;
+          if (activeModelId === 'dong-son') {
+            if (ud.coreDisc) ud.coreDisc.rotation.z = t * 0.09 * speedMul;
+            if (ud.backHaloDisc) ud.backHaloDisc.rotation.z = -t * 0.05 * speedMul;
+            if (ud.orbitRing1) {
+              ud.orbitRing1.rotation.y = t * 0.4 * speedMul;
+              ud.orbitRing1.rotation.x = Math.PI / 3 + Math.sin(t * 0.5) * 0.14;
+            }
+            centerpiece.rotation.y = Math.sin(t * 0.35) * 0.16;
+            centerpiece.rotation.x = Math.cos(t * 0.25) * 0.06;
+          } else if (activeModelId === 'holo-globe') {
+            if (ud.globe) ud.globe.rotation.y = t * 0.28 * speedMul;
+            if (ud.globeDots) ud.globeDots.rotation.y = t * 0.28 * speedMul;
+            if (ud.arcsGroup) ud.arcsGroup.rotation.y = t * 0.28 * speedMul;
+            if (ud.eqRing1) ud.eqRing1.rotation.z = t * 0.45 * speedMul;
+            if (ud.eqRing2) ud.eqRing2.rotation.z = -t * 0.38 * speedMul;
+          } else if (activeModelId === 'smart-city') {
+            if (ud.cityGroup) ud.cityGroup.rotation.y = t * 0.2 * speedMul;
+            if (ud.skyOrbitRing) ud.skyOrbitRing.rotation.z = t * 0.65 * speedMul;
+          } else if (activeModelId === 'lotus-3d') {
+            if (ud.lotusGroup) ud.lotusGroup.rotation.y = t * 0.24 * speedMul;
+            if (ud.stamenCore) {
+              const pulse = 1 + Math.sin(t * 2.8 * speedMul) * 0.08;
+              ud.stamenCore.scale.setScalar(pulse);
+            }
+            if (ud.stamenRing) ud.stamenRing.rotation.y = -t * 0.32 * speedMul;
+            if (ud.haloRing1) {
+              ud.haloRing1.rotation.z = t * 0.42 * speedMul;
+              ud.haloRing1.rotation.y = Math.sin(t * 0.4) * 0.18;
+            }
+            if (ud.haloRing2) ud.haloRing2.rotation.z = -t * 0.34 * speedMul;
+          } else if (activeModelId === 'golden-star') {
+            if (ud.starGroup) {
+              ud.starGroup.rotation.y = t * 0.38 * speedMul;
+              ud.starGroup.rotation.z = Math.sin(t * 0.7) * 0.08;
+            }
+            if (ud.starCore) {
+              ud.starCore.rotation.y = -t * 0.75 * speedMul;
+              const corePulse = 1 + Math.sin(t * 3.0 * speedMul) * 0.1;
+              ud.starCore.scale.setScalar(corePulse);
+            }
+            if (ud.ring1) ud.ring1.rotation.z = t * 0.52 * speedMul;
+            if (ud.ring2) ud.ring2.rotation.z = -t * 0.44 * speedMul;
+          } else if (activeModelId === 'ai-cube') {
+            if (ud.aiGroup) ud.aiGroup.rotation.y = t * 0.25 * speedMul;
+            if (ud.innerCube) {
+              ud.innerCube.rotation.x = t * 0.65 * speedMul;
+              ud.innerCube.rotation.y = -t * 0.55 * speedMul;
+            }
+            if (ud.midCube) {
+              ud.midCube.rotation.y = t * 0.35 * speedMul;
+              ud.midCube.rotation.z = Math.sin(t * 0.5) * 0.22;
+            }
+            if (ud.outerCage) {
+              ud.outerCage.rotation.y = -t * 0.22 * speedMul;
+              ud.outerCage.rotation.x = Math.cos(t * 0.4) * 0.15;
+            }
+            if (ud.cornerNodes) {
+              const nodePulse = 1 + Math.sin(t * 2.4 * speedMul) * 0.07;
+              ud.cornerNodes.scale.setScalar(nodePulse);
+              ud.cornerNodes.rotation.y = -t * 0.22 * speedMul;
+            }
+            if (ud.dataRing1) ud.dataRing1.rotation.z = t * 0.58 * speedMul;
+            if (ud.dataRing2) ud.dataRing2.rotation.z = -t * 0.48 * speedMul;
+          } else {
+            if (ud.crystal) {
+              ud.crystal.rotation.y = t * 0.42 * speedMul;
+              ud.crystal.rotation.x = Math.sin(t * 0.6) * 0.2;
+            }
+            if (ud.innerHeart) {
+              ud.innerHeart.rotation.y = -t * 0.65 * speedMul;
+            }
+            if (ud.cage) ud.cage.rotation.y = -t * 0.28 * speedMul;
+            if (ud.shardsGroup) {
+              ud.shardsGroup.rotation.y = t * 0.36 * speedMul;
+            }
+            if (ud.r1) ud.r1.rotation.x = t * 0.65 * speedMul;
+            if (ud.r2) ud.r2.rotation.y = t * 0.55 * speedMul;
+            if (ud.r3) ud.r3.rotation.z = -t * 0.48 * speedMul;
+          }
         }
-        centerpiece.rotation.y = Math.sin(t * 0.35) * 0.16;
-        centerpiece.rotation.x = Math.cos(t * 0.25) * 0.06;
-      } else if (patternId === 'holo-globe') {
-        if (ud.globe) ud.globe.rotation.y = t * 0.28 * speedMul;
-        if (ud.globeDots) ud.globeDots.rotation.y = t * 0.28 * speedMul;
-        if (ud.arcsGroup) ud.arcsGroup.rotation.y = t * 0.28 * speedMul;
-        if (ud.eqRing1) ud.eqRing1.rotation.z = t * 0.45 * speedMul;
-        if (ud.eqRing2) ud.eqRing2.rotation.z = -t * 0.38 * speedMul;
-      } else if (patternId === 'smart-city') {
-        if (ud.cityGroup) ud.cityGroup.rotation.y = t * 0.2 * speedMul;
-        if (ud.skyOrbitRing) ud.skyOrbitRing.rotation.z = t * 0.65 * speedMul;
-      } else {
-        if (ud.crystal) {
-          ud.crystal.rotation.y = t * 0.42 * speedMul;
-          ud.crystal.rotation.x = Math.sin(t * 0.6) * 0.2;
-        }
-        if (ud.innerHeart) {
-          ud.innerHeart.rotation.y = -t * 0.65 * speedMul;
-        }
-        if (ud.cage) ud.cage.rotation.y = -t * 0.28 * speedMul;
-        if (ud.shardsGroup) {
-          ud.shardsGroup.rotation.y = t * 0.36 * speedMul;
-        }
-        if (ud.r1) ud.r1.rotation.x = t * 0.65 * speedMul;
-        if (ud.r2) ud.r2.rotation.y = t * 0.55 * speedMul;
-        if (ud.r3) ud.r3.rotation.z = -t * 0.48 * speedMul;
       }
 
       const targetZ = isCharging ? 9.2 - (curProg / 100) * 1.8 : isCeleb ? 11.2 : 9.2;
@@ -674,20 +1196,15 @@ export default function ThreeStage({
     animate();
 
     return () => {
+      isDisposed = true;
       cancelAnimationFrame(rafId);
       window.removeEventListener('pointermove', onPointerMove);
       window.removeEventListener('resize', onResize);
 
-      scene.traverse((obj) => {
-        if (obj.geometry) obj.geometry.dispose();
-        if (obj.material) {
-          if (Array.isArray(obj.material)) {
-            obj.material.forEach((m) => m.dispose());
-          } else {
-            obj.material.dispose();
-          }
-        }
-      });
+      if (mixer) {
+        mixer.stopAllAction();
+      }
+      disposeObject3D(scene);
       disposableTextures.forEach((tex) => tex.dispose());
       envRT.dispose();
       pmremGenerator.dispose();
@@ -697,7 +1214,7 @@ export default function ThreeStage({
         container.removeChild(renderer.domElement);
       }
     };
-  }, [patternId]);
+  }, [patternId, isCustomCeremony, effectiveModelType, effectiveModelId, effectiveModelUrl]);
 
   return (
     <div

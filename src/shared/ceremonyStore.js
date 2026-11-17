@@ -48,6 +48,8 @@ export const DEFAULT_CONFIG = {
   hasCustomBgVideo: false,
   hasCustomActivationVideo: false,
   activationVideoMuted: true,
+  custom3dModelType: 'preset', // 'preset' | 'uploaded' | 'none'
+  custom3dModelId: 'crystal-core',
 
   // Extended Celebration Page Customization
   celebrationRibbon: 'NGHI THỨC KÍCH HOẠT HOÀN THÀNH',
@@ -72,6 +74,19 @@ export function extractYouTubeId(urlOrId) {
   return 'sbDz4hoZWCk';
 }
 
+const VALID_3D_MODEL_TYPES = new Set(['preset', 'uploaded', 'none']);
+
+export function normalizeConfig(rawConfig = {}) {
+  const merged = { ...DEFAULT_CONFIG, ...(rawConfig && typeof rawConfig === 'object' ? rawConfig : {}) };
+  if (!VALID_3D_MODEL_TYPES.has(merged.custom3dModelType)) {
+    merged.custom3dModelType = DEFAULT_CONFIG.custom3dModelType;
+  }
+  if (typeof merged.custom3dModelId !== 'string' || !merged.custom3dModelId.trim()) {
+    merged.custom3dModelId = DEFAULT_CONFIG.custom3dModelId;
+  }
+  return merged;
+}
+
 export function loadConfig() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -80,7 +95,7 @@ export function loadConfig() {
     if (parsed.youtubeVideoId === 'qyW8818wHhA') {
       parsed.youtubeVideoId = 'sbDz4hoZWCk';
     }
-    return { ...DEFAULT_CONFIG, ...parsed };
+    return normalizeConfig(parsed);
   } catch {
     return { ...DEFAULT_CONFIG };
   }

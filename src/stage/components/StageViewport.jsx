@@ -18,6 +18,7 @@ function StageContent({
   customHandImageUrl,
   customBgVideoUrl,
   customActivationVideoUrl,
+  custom3dModelUrl = null,
   onActivateHand,
   onDeactivateHand,
   onActivationVideoEnded,
@@ -90,6 +91,9 @@ function StageContent({
         coreY={config.coreY}
         coreScale={config.coreScale}
         hideCenterpiece={isPlayingActivationVideo}
+        custom3dModelType={config.custom3dModelType}
+        custom3dModelId={config.custom3dModelId}
+        custom3dModelUrl={custom3dModelUrl}
       />
 
       {/* Custom Triggered Activation Video (Runs when Start / Touch completes) */}

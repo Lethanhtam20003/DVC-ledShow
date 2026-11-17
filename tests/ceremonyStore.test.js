@@ -8,8 +8,10 @@ import {
   createSyncChannel,
   extractYouTubeId,
   loadConfig,
+  normalizeConfig,
   saveConfig,
 } from '../src/shared/ceremonyStore.js';
+import { BUILTIN_3D_MODELS } from '../src/shared/models3d.js';
 
 test('PATTERNS contains 5 unique stage patterns with required fields', () => {
   assert.equal(PATTERNS.length, 5);
@@ -84,4 +86,71 @@ test('createSyncChannel returns safe no-op when BroadcastChannel is unavailable'
     channel.post('CMD_RESET', {});
     channel.close();
   });
+});
+
+test('BUILTIN_3D_MODELS contains all 8 expected 3D model presets', () => {
+  assert.equal(BUILTIN_3D_MODELS.length, 8);
+  const expectedIds = [
+    'dong-son',
+    'holo-globe',
+    'smart-city',
+    'crystal-core',
+    'lotus-3d',
+    'golden-star',
+    'ai-cube',
+    'none',
+  ];
+  assert.deepEqual(
+    BUILTIN_3D_MODELS.map((m) => m.id),
+    expectedIds
+  );
+  for (const m of BUILTIN_3D_MODELS) {
+    assert.ok(m.name && m.subtitle && m.badge && m.accentColor);
+  }
+});
+
+test('custom3dModelType and custom3dModelId defaults and normalization', () => {
+  assert.equal(DEFAULT_CONFIG.custom3dModelType, 'preset');
+  assert.equal(DEFAULT_CONFIG.custom3dModelId, 'crystal-core');
+
+  const validPreset = normalizeConfig({
+    custom3dModelType: 'preset',
+    custom3dModelId: 'lotus-3d',
+  });
+  assert.equal(validPreset.custom3dModelType, 'preset');
+  assert.equal(validPreset.custom3dModelId, 'lotus-3d');
+
+  const validUploaded = normalizeConfig({
+    custom3dModelType: 'uploaded',
+    custom3dModelId: '3d-abc-123',
+  });
+  assert.equal(validUploaded.custom3dModelType, 'uploaded');
+  assert.equal(validUploaded.custom3dModelId, '3d-abc-123');
+
+  const validNone = normalizeConfig({
+    custom3dModelType: 'none',
+    custom3dModelId: 'none',
+  });
+  assert.equal(validNone.custom3dModelType, 'none');
+  assert.equal(validNone.custom3dModelId, 'none');
+
+  const invalid = normalizeConfig({
+    custom3dModelType: 'invalid-type',
+    custom3dModelId: '   ',
+  });
+  assert.equal(invalid.custom3dModelType, 'preset');
+  assert.equal(invalid.custom3dModelId, 'crystal-core');
+
+  const store = new Map();
+  globalThis.localStorage = {
+    getItem: (k) => (store.has(k) ? store.get(k) : null),
+    setItem: (k, v) => store.set(k, String(v)),
+  };
+  store.set(
+    STORAGE_KEY,
+    JSON.stringify({ custom3dModelType: 'bogus', custom3dModelId: null })
+  );
+  const loaded = loadConfig();
+  assert.equal(loaded.custom3dModelType, 'preset');
+  assert.equal(loaded.custom3dModelId, 'crystal-core');
 });

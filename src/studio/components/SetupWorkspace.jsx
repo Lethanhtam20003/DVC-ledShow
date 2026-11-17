@@ -2,8 +2,11 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ArrowLeft,
   Award,
+  Box,
+  Check,
   Film,
   Hand,
+  Loader2,
   MonitorPlay,
   Play,
   RotateCcw,
@@ -16,11 +19,15 @@ import {
 } from 'lucide-react';
 import StageViewport from '../../stage/components/StageViewport';
 import { getPatternById } from '../../shared/patterns';
+import { BUILTIN_3D_MODELS } from '../../shared/models3d';
 import { extractYouTubeId } from '../../shared/ceremonyStore';
 import { ceremonyAudio } from '../../shared/audioEngine';
 import {
+  deleteCustom3dModel,
   deleteMediaBlob,
+  listCustom3dModels,
   loadAllCustomMediaUrls,
+  saveCustom3dModel,
   saveMediaBlob,
 } from '../../shared/mediaStorage';
 
@@ -30,6 +37,13 @@ const GLOW_PRESETS = [
   { label: 'Đỏ Lễ Tiết', color: '#ef4444' },
   { label: 'Bạch Kim', color: '#ffffff' },
 ];
+
+function formatFileSize(bytes) {
+  if (!Number.isFinite(bytes) || bytes < 0) return '0 B';
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+}
 
 export default function SetupWorkspace({
   open,
@@ -53,9 +67,13 @@ export default function SetupWorkspace({
     customBgAudioUrl: null,
     customFanfareAudioUrl: null,
   });
+  const [custom3dModels, setCustom3dModels] = useState([]);
+  const [model3dUploading, setModel3dUploading] = useState(false);
+  const [model3dError, setModel3dError] = useState('');
 
   const timerRef = useRef(null);
   const lastSecRef = useRef(5);
+  const custom3dUrlsRef = useRef([]);
 
   const stopTimer = useCallback(() => {
     if (timerRef.current) {
@@ -69,11 +87,31 @@ export default function SetupWorkspace({
     setMediaUrls(urls);
   }, []);
 
+  const refreshCustom3dModels = useCallback(async () => {
+    try {
+      const models = await listCustom3dModels();
+      const prevUrls = custom3dUrlsRef.current;
+      custom3dUrlsRef.current = models.map((m) => m.url).filter(Boolean);
+      setCustom3dModels(models);
+      prevUrls.forEach((url) => URL.revokeObjectURL(url));
+    } catch {
+      setCustom3dModels([]);
+    }
+  }, []);
+
   useEffect(() => {
     if (open) {
       refreshMedia();
+      refreshCustom3dModels();
     }
-  }, [open, refreshMedia]);
+  }, [open, refreshMedia, refreshCustom3dModels]);
+
+  useEffect(() => {
+    return () => {
+      custom3dUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+      custom3dUrlsRef.current = [];
+    };
+  }, []);
 
   useEffect(() => {
     ceremonyAudio.configure({
@@ -223,6 +261,54 @@ export default function SetupWorkspace({
     onMediaUpdated?.();
   };
 
+  const handleCustom3dModelUpload = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+
+    const lowerName = (file.name || '').toLowerCase();
+    if (!lowerName.endsWith('.glb') && !lowerName.endsWith('.gltf')) {
+      setModel3dError('Chỉ hỗ trợ tệp mô hình 3D định dạng .glb hoặc .gltf.');
+      return;
+    }
+
+    setModel3dError('');
+    setModel3dUploading(true);
+    try {
+      const saved = await saveCustom3dModel(file);
+      await refreshCustom3dModels();
+      onChange({
+        custom3dModelType: 'uploaded',
+        custom3dModelId: saved.id,
+      });
+      onMediaUpdated?.();
+    } catch (err) {
+      setModel3dError(err?.message || 'Không thể lưu mô hình 3D. Vui lòng thử lại.');
+    } finally {
+      setModel3dUploading(false);
+    }
+  };
+
+  const handleCustom3dModelDelete = async (itemId) => {
+    setModel3dError('');
+    try {
+      await deleteCustom3dModel(itemId);
+      await refreshCustom3dModels();
+      onMediaUpdated?.();
+      if (
+        config.custom3dModelType === 'uploaded' &&
+        config.custom3dModelId === itemId
+      ) {
+        onChange({
+          custom3dModelType: 'preset',
+          custom3dModelId: 'crystal-core',
+        });
+      }
+    } catch (err) {
+      setModel3dError(err?.message || 'Không thể xóa mô hình 3D. Vui lòng thử lại.');
+    }
+  };
+
   const handleLogoUpload = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -251,6 +337,12 @@ export default function SetupWorkspace({
   if (!open) return null;
 
   const pattern = getPatternById(config.patternId);
+  const activeCustom3dModelUrl =
+    config.patternId === 'custom-ceremony' &&
+    config.custom3dModelType === 'uploaded' &&
+    config.custom3dModelId
+      ? custom3dModels.find((m) => m.id === config.custom3dModelId)?.url || null
+      : null;
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-950 flex flex-col">
@@ -334,6 +426,7 @@ export default function SetupWorkspace({
                 customHandImageUrl={mediaUrls.customHandImageUrl}
                 customBgVideoUrl={mediaUrls.customBgVideoUrl}
                 customActivationVideoUrl={mediaUrls.customActivationVideoUrl}
+                custom3dModelUrl={activeCustom3dModelUrl}
                 onActivateHand={handleDemoHandDown}
                 onDeactivateHand={handleDemoHandUp}
                 onActivationVideoEnded={completeDemo}
@@ -425,6 +518,195 @@ export default function SetupWorkspace({
             {/* TAB 1: CUSTOM HAND IMAGE & TRIGGERED/BACKGROUND VIDEOS */}
             {activeTab === 'custom' && (
               <>
+                {config.patternId === 'custom-ceremony' && (
+                  <div className="p-4 rounded-2xl bg-slate-900/70 border border-slate-800 space-y-4">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs font-bold text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
+                        <Box className="w-3.5 h-3.5" /> Mô hình 3D trung tâm
+                      </span>
+                      <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
+                        {config.custom3dModelType === 'uploaded'
+                          ? 'File .GLB/.GLTF riêng'
+                          : config.custom3dModelType === 'none'
+                            ? 'Đã tắt 3D'
+                            : 'Mẫu 3D có sẵn'}
+                      </span>
+                    </div>
+
+                    {/* Built-in 3D Preset Grid */}
+                    <div className="grid grid-cols-2 gap-2">
+                      {BUILTIN_3D_MODELS.map((model) => {
+                        const isSelected =
+                          model.id === 'none'
+                            ? config.custom3dModelType === 'none'
+                            : config.custom3dModelType !== 'uploaded' &&
+                              config.custom3dModelType !== 'none' &&
+                              (config.custom3dModelId || 'crystal-core') === model.id;
+
+                        return (
+                          <button
+                            key={model.id}
+                            type="button"
+                            onClick={() =>
+                              onChange({
+                                custom3dModelType:
+                                  model.id === 'none' ? 'none' : 'preset',
+                                custom3dModelId: model.id,
+                              })
+                            }
+                            className={`text-left p-2.5 rounded-xl border transition-all cursor-pointer flex flex-col justify-between gap-1.5 ${
+                              isSelected
+                                ? 'border-amber-400 bg-amber-400/10 shadow-[0_0_0_1px_rgba(251,191,36,0.35)]'
+                                : 'border-slate-800 bg-slate-950/80 hover:border-slate-700 hover:bg-slate-900'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between gap-1.5">
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <span
+                                  className="w-2.5 h-2.5 rounded-full shrink-0"
+                                  style={{ backgroundColor: model.accentColor }}
+                                />
+                                <span className="text-[11px] font-bold text-white truncate">
+                                  {model.name}
+                                </span>
+                              </div>
+                              {isSelected ? (
+                                <Check className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                              ) : (
+                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-900 text-slate-400 border border-slate-800 shrink-0">
+                                  {model.badge}
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-[10px] text-slate-400 leading-snug line-clamp-2">
+                              {model.subtitle}
+                            </p>
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Personal .glb/.gltf Library Subsection */}
+                    <div className="pt-3 border-t border-slate-800 space-y-2.5">
+                      <div className="flex items-center justify-between gap-2">
+                        <div>
+                          <div className="text-xs font-semibold text-slate-200">
+                            Thư viện .GLB / .GLTF cá nhân
+                          </div>
+                          <div className="text-[11px] text-slate-400">
+                            Tải lên mô hình 3D riêng để trình chiếu ở trung tâm sân khấu.
+                          </div>
+                        </div>
+
+                        <label
+                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold shrink-0 transition-colors ${
+                            model3dUploading
+                              ? 'bg-slate-800 border-slate-700 text-slate-400 cursor-wait'
+                              : 'bg-amber-400/15 hover:bg-amber-400/25 border-amber-400/40 text-amber-200 cursor-pointer'
+                          }`}
+                        >
+                          {model3dUploading ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-400" />
+                          ) : (
+                            <Upload className="w-3.5 h-3.5 text-amber-400" />
+                          )}
+                          {model3dUploading ? 'Đang tải...' : 'Tải .GLB / .GLTF'}
+                          <input
+                            type="file"
+                            accept=".glb,.gltf"
+                            disabled={model3dUploading}
+                            onChange={handleCustom3dModelUpload}
+                            className="hidden"
+                          />
+                        </label>
+                      </div>
+
+                      {model3dError && (
+                        <div className="px-3 py-2 rounded-xl bg-rose-500/10 border border-rose-500/30 text-[11px] text-rose-300">
+                          {model3dError}
+                        </div>
+                      )}
+
+                      {custom3dModels.length === 0 ? (
+                        <div className="px-3 py-3 rounded-xl bg-slate-950/60 border border-dashed border-slate-800 text-[11px] text-slate-500 text-center">
+                          Chưa có mô hình .glb/.gltf nào được lưu.
+                        </div>
+                      ) : (
+                        <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                          {custom3dModels.map((item) => {
+                            const isActive =
+                              config.custom3dModelType === 'uploaded' &&
+                              config.custom3dModelId === item.id;
+
+                            return (
+                              <div
+                                key={item.id}
+                                role="button"
+                                tabIndex={0}
+                                onClick={() =>
+                                  onChange({
+                                    custom3dModelType: 'uploaded',
+                                    custom3dModelId: item.id,
+                                  })
+                                }
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' || e.key === ' ') {
+                                    e.preventDefault();
+                                    onChange({
+                                      custom3dModelType: 'uploaded',
+                                      custom3dModelId: item.id,
+                                    });
+                                  }
+                                }}
+                                className={`flex items-center justify-between gap-2 px-3 py-2 rounded-xl border transition-colors cursor-pointer ${
+                                  isActive
+                                    ? 'border-amber-400 bg-amber-400/10'
+                                    : 'border-slate-800 bg-slate-950/80 hover:border-slate-700'
+                                }`}
+                              >
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <Box
+                                    className={`w-4 h-4 shrink-0 ${
+                                      isActive ? 'text-amber-400' : 'text-slate-400'
+                                    }`}
+                                  />
+                                  <div className="min-w-0">
+                                    <div className="text-xs font-semibold text-white truncate">
+                                      {item.name}
+                                    </div>
+                                    <div className="text-[10px] text-slate-400">
+                                      {formatFileSize(item.size)}
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div className="flex items-center gap-2 shrink-0">
+                                  {isActive && (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-400 text-slate-950">
+                                      <Check className="w-3 h-3" /> Đang chọn
+                                    </span>
+                                  )}
+                                  <button
+                                    type="button"
+                                    title="Xóa mô hình 3D"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleCustom3dModelDelete(item.id);
+                                    }}
+                                    className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 <div className="p-4 rounded-2xl bg-slate-900/70 border border-slate-800 space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-amber-300 uppercase tracking-wider flex items-center gap-1.5">

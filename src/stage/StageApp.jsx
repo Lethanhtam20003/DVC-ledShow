@@ -1,7 +1,10 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import StageViewport from './components/StageViewport';
 import { ceremonyAudio } from '../shared/audioEngine';
-import { loadAllCustomMediaUrls } from '../shared/mediaStorage';
+import {
+  getCustom3dModelUrl,
+  loadAllCustomMediaUrls,
+} from '../shared/mediaStorage';
 import {
   createSyncChannel,
   loadConfig,
@@ -18,6 +21,8 @@ export default function StageApp() {
     customBgAudioUrl: null,
     customFanfareAudioUrl: null,
   });
+  const [custom3dModelUrl, setCustom3dModelUrl] = useState(null);
+  const [mediaVersion, setMediaVersion] = useState(0);
   const [phase, setPhase] = useState('standby'); // 'standby' | 'charging' | 'celebration'
   const [progress, setProgress] = useState(0);
   const [countdownSec, setCountdownSec] = useState(5);
@@ -160,11 +165,54 @@ export default function StageApp() {
   const refreshMedia = useCallback(async () => {
     const urls = await loadAllCustomMediaUrls();
     setMediaUrls(urls);
+    setMediaVersion((v) => v + 1);
   }, []);
 
   useEffect(() => {
     refreshMedia();
   }, [refreshMedia]);
+
+  useEffect(() => {
+    let cancelled = false;
+    let createdUrl = null;
+
+    const shouldLoad =
+      config.patternId === 'custom-ceremony' &&
+      config.custom3dModelType === 'uploaded' &&
+      Boolean(config.custom3dModelId);
+
+    if (!shouldLoad) {
+      setCustom3dModelUrl(null);
+      return undefined;
+    }
+
+    getCustom3dModelUrl(config.custom3dModelId)
+      .then((url) => {
+        if (cancelled) {
+          if (url) URL.revokeObjectURL(url);
+          return;
+        }
+        createdUrl = url || null;
+        setCustom3dModelUrl(createdUrl);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setCustom3dModelUrl(null);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+      if (createdUrl) {
+        URL.revokeObjectURL(createdUrl);
+      }
+    };
+  }, [
+    config.patternId,
+    config.custom3dModelType,
+    config.custom3dModelId,
+    mediaVersion,
+  ]);
 
   // Listen to Studio updates via BroadcastChannel & storage event
   useEffect(() => {
@@ -266,6 +314,7 @@ export default function StageApp() {
       customHandImageUrl={mediaUrls.customHandImageUrl}
       customBgVideoUrl={mediaUrls.customBgVideoUrl}
       customActivationVideoUrl={mediaUrls.customActivationVideoUrl}
+      custom3dModelUrl={custom3dModelUrl}
       onActivateHand={handleActivateHand}
       onDeactivateHand={handleDeactivateHand}
       onActivationVideoEnded={completeActivation}
