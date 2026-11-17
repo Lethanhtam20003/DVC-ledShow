@@ -8,7 +8,6 @@ import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment
 import { getPatternById } from '../../shared/patterns';
 import {
   createBuildingFacadeTexture,
-  createDongSonFaceTexture,
   createFloorGlowTexture,
   createGlowParticleTexture,
 } from './threeAssets';
@@ -43,94 +42,50 @@ function buildCenterpiece(patternId, colors, disposableTextures) {
   });
 
   if (patternId === 'dong-son') {
-    // Detailed 3D Dong Son Bronze Drum with procedural engraved face + multi-layered rings
-    const drumTex = createDongSonFaceTexture(
-      colors.primary,
-      colors.secondary,
-      colors.accent
-    );
+    // Load authentic high-res Ngoc Lu Dong Son drum texture from public/dong-son-drum.png
+    const loader = new THREE.TextureLoader();
+    const drumTex = loader.load('./dong-son-drum.png');
+    drumTex.colorSpace = THREE.SRGBColorSpace;
+    drumTex.anisotropy = 8;
     disposableTextures.push(drumTex);
 
     const outerRim = new THREE.Mesh(
-      new THREE.TorusGeometry(2.65, 0.085, 24, 128),
+      new THREE.TorusGeometry(2.7, 0.055, 24, 128),
       solidGoldMat
     );
     const outerBevel = new THREE.Mesh(
-      new THREE.TorusGeometry(2.48, 0.032, 16, 128),
-      ringMat
-    );
-    const midRim = new THREE.Mesh(
-      new THREE.TorusGeometry(2.02, 0.045, 20, 112),
-      solidGoldMat
-    );
-    const innerRim = new THREE.Mesh(
-      new THREE.TorusGeometry(1.38, 0.035, 18, 96),
+      new THREE.TorusGeometry(2.84, 0.018, 16, 128),
       ringMat
     );
 
     const drumFaceMat = new THREE.MeshStandardMaterial({
       map: drumTex,
       bumpMap: drumTex,
-      bumpScale: 0.06,
+      bumpScale: 0.05,
       emissiveMap: drumTex,
-      emissive: new THREE.Color('#ffffff'),
-      emissiveIntensity: 0.68,
-      metalness: 0.28,
-      roughness: 0.45,
+      emissive: new THREE.Color('#ffd54f'),
+      emissiveIntensity: 0.16,
+      metalness: 0.12,
+      roughness: 0.68,
       transparent: true,
-      opacity: 0.96,
+      alphaTest: 0.04,
+      side: THREE.DoubleSide,
     });
     const coreDisc = new THREE.Mesh(
-      new THREE.CircleGeometry(2.44, 72),
+      new THREE.CircleGeometry(2.68, 96),
       drumFaceMat
     );
     coreDisc.position.z = 0.02;
 
-    // 12 Lac Viet Sun Rays around center + glowing core jewel
-    const raysGroup = new THREE.Group();
-    for (let i = 0; i < 12; i++) {
-      const angle = (i / 12) * Math.PI * 2;
-      const cone = new THREE.Mesh(
-        new THREE.ConeGeometry(0.11, 0.52, 8),
-        solidGoldMat
-      );
-      cone.position.set(Math.cos(angle) * 1.7, Math.sin(angle) * 1.7, 0.08);
-      cone.rotation.z = angle - Math.PI / 2;
-      raysGroup.add(cone);
-
-      const jewel = new THREE.Mesh(
-        new THREE.SphereGeometry(0.045, 12, 12),
-        ringMat
-      );
-      jewel.position.set(Math.cos(angle) * 2.24, Math.sin(angle) * 2.24, 0.08);
-      raysGroup.add(jewel);
-    }
-
-    // Dual counter-rotating orbital rings with nodes
+    // Outer sleek orbital ring framing the drum
     const orbitRing1 = new THREE.Mesh(
-      new THREE.TorusGeometry(3.08, 0.022, 16, 128),
+      new THREE.TorusGeometry(3.22, 0.018, 16, 128),
       ringMat
     );
     orbitRing1.rotation.x = Math.PI / 3;
 
-    const orbitRing2 = new THREE.Mesh(
-      new THREE.TorusGeometry(3.32, 0.016, 16, 128),
-      solidGoldMat
-    );
-    orbitRing2.rotation.x = -Math.PI / 3.4;
-    orbitRing2.rotation.y = Math.PI / 5;
-
-    group.add(
-      outerRim,
-      outerBevel,
-      midRim,
-      innerRim,
-      coreDisc,
-      raysGroup,
-      orbitRing1,
-      orbitRing2
-    );
-    group.userData = { raysGroup, orbitRing1, orbitRing2, outerRim };
+    group.add(outerRim, outerBevel, coreDisc, orbitRing1);
+    group.userData = { coreDisc, orbitRing1, outerRim };
   } else if (patternId === 'holo-globe') {
     // Detailed 3D Hologram Digital Globe: wireframe + dotted data sphere + curved data arcs
     const globe = new THREE.Mesh(
@@ -422,37 +377,37 @@ export default function ThreeStage({
     renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 0.96;
+    renderer.toneMappingExposure = 0.92;
     container.appendChild(renderer.domElement);
 
     const pmremGenerator = new THREE.PMREMGenerator(renderer);
     const roomEnv = new RoomEnvironment();
     const envRT = pmremGenerator.fromScene(roomEnv, 0.04);
     scene.environment = envRT.texture;
-    scene.environmentIntensity = 0.52;
+    scene.environmentIntensity = 0.42;
     roomEnv.dispose();
 
     const composer = new EffectComposer(renderer);
     composer.addPass(new RenderPass(scene, camera));
-    const baseBloom = colors.bloomStrength * 0.72;
+    const baseBloom = colors.bloomStrength * 0.48;
     const bloomPass = new UnrealBloomPass(
       new THREE.Vector2(width, height),
       baseBloom,
-      0.52,
-      0.42
+      0.42,
+      0.68
     );
     composer.addPass(bloomPass);
     composer.addPass(new OutputPass());
 
     // Lighting
-    const ambient = new THREE.AmbientLight(0xffffff, 0.55);
-    const keyLight = new THREE.PointLight(colors.primary, 48, 32);
+    const ambient = new THREE.AmbientLight(0xffffff, 0.45);
+    const keyLight = new THREE.PointLight(colors.primary, 18, 32);
     keyLight.position.set(3.5, 5.5, 6);
-    const rimLight = new THREE.PointLight(colors.accent, 34, 32);
+    const rimLight = new THREE.PointLight(colors.accent, 12, 32);
     rimLight.position.set(-4.5, -2, 4.5);
     scene.add(ambient, keyLight, rimLight);
 
-    // Smooth radial-faded 3D Stage Floor Disc
+    // Smooth radial-faded 3D Stage Floor Disc + Royal Ceremonial 3D Rings
     const floorTex = createFloorGlowTexture(colors.primary, colors.grid);
     disposableTextures.push(floorTex);
     const floorMesh = new THREE.Mesh(
@@ -460,14 +415,53 @@ export default function ThreeStage({
       new THREE.MeshBasicMaterial({
         map: floorTex,
         transparent: true,
-        opacity: 0.65,
+        opacity: 0.88,
         blending: THREE.AdditiveBlending,
         depthWrite: false,
       })
     );
     floorMesh.rotation.x = -Math.PI / 2;
-    floorMesh.position.y = -3.4;
+    floorMesh.position.y = -2.95;
     scene.add(floorMesh);
+
+    const floorRingGroup = new THREE.Group();
+    floorRingGroup.position.y = -2.92;
+    const floorInnerRing = new THREE.Mesh(
+      new THREE.TorusGeometry(3.4, 0.032, 16, 128),
+      new THREE.MeshBasicMaterial({
+        color: colors.primary,
+        transparent: true,
+        opacity: 0.65,
+      })
+    );
+    floorInnerRing.rotation.x = Math.PI / 2;
+
+    const floorOuterRing = new THREE.Mesh(
+      new THREE.TorusGeometry(5.1, 0.024, 16, 128),
+      new THREE.MeshBasicMaterial({
+        color: colors.accent,
+        transparent: true,
+        opacity: 0.45,
+      })
+    );
+    floorOuterRing.rotation.x = Math.PI / 2;
+
+    // 12 golden ceremonial floor markers around podium perimeter
+    for (let i = 0; i < 12; i++) {
+      const a = (i / 12) * Math.PI * 2;
+      const marker = new THREE.Mesh(
+        new THREE.OctahedronGeometry(0.08, 0),
+        new THREE.MeshBasicMaterial({
+          color: colors.accent,
+          transparent: true,
+          opacity: 0.75,
+        })
+      );
+      marker.position.set(Math.cos(a) * 4.25, 0.04, Math.sin(a) * 4.25);
+      floorRingGroup.add(marker);
+    }
+    floorRingGroup.add(floorInnerRing, floorOuterRing);
+    scene.add(floorRingGroup);
 
     // Centerpiece 3D Group
     const centerpiece = buildCenterpiece(patternId, colors, disposableTextures);
@@ -581,6 +575,9 @@ export default function ThreeStage({
       const isCeleb = curPhase === 'celebration';
       const speedMul = isCharging ? 1 + (curProg / 100) * 3.2 : isCeleb ? 0.65 : 1;
 
+      floorMesh.rotation.z = t * 0.03 * speedMul;
+      floorRingGroup.rotation.y = -t * 0.08 * speedMul;
+
       const targetVisibleScale = isCeleb || hideCore ? 0.001 : cScale;
       const nextScale = THREE.MathUtils.damp(
         centerpiece.scale.x,
@@ -600,15 +597,14 @@ export default function ThreeStage({
 
       const ud = centerpiece.userData;
       if (patternId === 'dong-son') {
-        if (ud.raysGroup) ud.raysGroup.rotation.z = t * 0.24 * speedMul;
+        if (ud.coreDisc) ud.coreDisc.rotation.z = t * 0.09 * speedMul;
+        if (ud.backHaloDisc) ud.backHaloDisc.rotation.z = -t * 0.05 * speedMul;
         if (ud.orbitRing1) {
-          ud.orbitRing1.rotation.y = t * 0.45 * speedMul;
+          ud.orbitRing1.rotation.y = t * 0.4 * speedMul;
           ud.orbitRing1.rotation.x = Math.PI / 3 + Math.sin(t * 0.5) * 0.14;
         }
-        if (ud.orbitRing2) {
-          ud.orbitRing2.rotation.z = -t * 0.35 * speedMul;
-        }
-        centerpiece.rotation.y = Math.sin(t * 0.35) * 0.18;
+        centerpiece.rotation.y = Math.sin(t * 0.35) * 0.16;
+        centerpiece.rotation.x = Math.cos(t * 0.25) * 0.06;
       } else if (patternId === 'holo-globe') {
         if (ud.globe) ud.globe.rotation.y = t * 0.28 * speedMul;
         if (ud.globeDots) ud.globeDots.rotation.y = t * 0.28 * speedMul;
@@ -663,7 +659,7 @@ export default function ThreeStage({
       posAttr.needsUpdate = true;
 
       const targetBloom = isCharging
-        ? Math.min(1.02, baseBloom + (curProg / 100) * 0.24)
+        ? Math.min(0.78, baseBloom + (curProg / 100) * 0.22)
         : baseBloom;
       bloomPass.strength = THREE.MathUtils.damp(
         bloomPass.strength,

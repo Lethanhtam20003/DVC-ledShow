@@ -353,10 +353,11 @@ export function createFloorGlowTexture(primary, gridColor) {
 
   ctx.clearRect(0, 0, size, size);
 
-  // Subtle concentric rings
+  // Subtle perspective grid lines
   const step = 64;
   ctx.strokeStyle = gridColor;
-  ctx.lineWidth = 1.5;
+  ctx.lineWidth = 2;
+  ctx.globalAlpha = 0.72;
   for (let x = 0; x <= size; x += step) {
     ctx.beginPath();
     ctx.moveTo(x, 0);
@@ -370,14 +371,28 @@ export function createFloorGlowTexture(primary, gridColor) {
     ctx.stroke();
   }
 
-  // Highlighted center energy rings
+  // Radiating royal sun-rays from center
   ctx.strokeStyle = primary;
-  ctx.lineWidth = 2;
-  [140, 250, 360].forEach((r) => {
+  ctx.lineWidth = 1.5;
+  ctx.globalAlpha = 0.38;
+  for (let i = 0; i < 16; i++) {
+    const a = (i / 16) * Math.PI * 2;
+    ctx.beginPath();
+    ctx.moveTo(half + Math.cos(a) * 60, half + Math.sin(a) * 60);
+    ctx.lineTo(half + Math.cos(a) * 470, half + Math.sin(a) * 470);
+    ctx.stroke();
+  }
+
+  // Highlighted concentric ceremonial rings
+  ctx.strokeStyle = primary;
+  [110, 195, 285, 375, 455].forEach((r, idx) => {
+    ctx.lineWidth = idx % 2 === 0 ? 3 : 1.8;
+    ctx.globalAlpha = idx % 2 === 0 ? 0.78 : 0.45;
     ctx.beginPath();
     ctx.arc(half, half, r, 0, Math.PI * 2);
     ctx.stroke();
   });
+  ctx.globalAlpha = 1;
 
   // Radial alpha mask to fade edges smoothly
   ctx.globalCompositeOperation = 'destination-in';
