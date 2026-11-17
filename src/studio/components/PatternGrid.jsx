@@ -1,8 +1,9 @@
 import React from 'react';
-import { Check, Sparkles, Globe, Building2, Gem, Wand2, SlidersHorizontal } from 'lucide-react';
+import { Check, Sparkles, Globe, Building2, Gem, Wand2, SlidersHorizontal, Orbit } from 'lucide-react';
 import { PATTERNS } from '../../shared/patterns';
 
 const PATTERN_ICONS = {
+  'cdsqg-2026': Orbit,
   'dong-son': Sparkles,
   'holo-globe': Globe,
   'smart-city': Building2,

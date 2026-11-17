@@ -1,7 +1,24 @@
 import React from 'react';
-import { Award, Building2, Cpu, Globe2 } from 'lucide-react';
+import {
+  Award,
+  Building2,
+  Cpu,
+  Flower2,
+  Gem,
+  Globe2,
+  Star,
+} from 'lucide-react';
 
 const PILLAR_ICONS = [Building2, Cpu, Globe2];
+
+const PATTERN_CELEBRATION_ICONS = {
+  'holo-globe': Globe2,
+  'smart-city': Building2,
+  'crystal-core': Gem,
+  'lotus-3d': Flower2,
+  'golden-star': Star,
+  'ai-cube': Cpu,
+};
 
 export default function Celebration({ config, pattern, visible }) {
   if (!visible) return null;
@@ -28,6 +45,22 @@ export default function Celebration({ config, pattern, visible }) {
       : pattern.colors.secondary;
 
   const logoPx = config.logoSize || 112;
+  const activeEmblemKey =
+    pattern.id === 'custom-ceremony'
+      ? config.custom3dModelType === 'none'
+        ? 'none'
+        : config.custom3dModelId || 'crystal-core'
+      : pattern.id;
+
+  const defaultImageLogoSrc =
+    activeEmblemKey === 'cdsqg-2026'
+      ? './logo-cdsqg-2026.png'
+      : activeEmblemKey === 'dong-son'
+        ? './dong-son-drum.png'
+        : null;
+
+  const EmblemIcon = PATTERN_CELEBRATION_ICONS[activeEmblemKey] || Award;
+
   const pillars =
     Array.isArray(config.celebrationPillars) && config.celebrationPillars.length > 0
       ? config.celebrationPillars
@@ -39,36 +72,45 @@ export default function Celebration({ config, pattern, visible }) {
 
   return (
     <div className="absolute inset-0 z-40 flex flex-col items-center justify-center px-8 text-center">
-      {/* Custom Logo or Default Emblem */}
-      <div className="mb-6 animate-float-slow">
-        {config.customLogoData ? (
-          <img
-            src={config.customLogoData}
-            alt="Logo đơn vị"
-            style={{ height: `${logoPx}px` }}
-            className="w-auto object-contain drop-shadow-[0_10px_30px_rgba(245,197,66,0.45)]"
-          />
-        ) : (
-          <div
-            style={{
-              width: `${Math.round(logoPx * 0.85)}px`,
-              height: `${Math.round(logoPx * 0.85)}px`,
-              borderColor: accentPrimary,
-              backgroundColor: `${accentSecondary}55`,
-              boxShadow: `0 0 40px ${accentPrimary}66`,
-            }}
-            className="rounded-full border-2 flex items-center justify-center backdrop-blur-md shadow-2xl"
-          >
-            <Award
-              style={{
-                width: `${Math.round(logoPx * 0.44)}px`,
-                height: `${Math.round(logoPx * 0.44)}px`,
-                color: accentLight,
-              }}
+      {/* Custom Logo or Pattern-Matched Default Emblem */}
+      { (config.customLogoData || activeEmblemKey !== 'none') && (
+        <div className="mb-6 animate-float-slow">
+          {config.customLogoData ? (
+            <img
+              src={config.customLogoData}
+              alt="Logo đơn vị"
+              style={{ height: `${logoPx}px` }}
+              className="w-auto object-contain drop-shadow-[0_10px_30px_rgba(245,197,66,0.45)]"
             />
-          </div>
-        )}
-      </div>
+          ) : defaultImageLogoSrc ? (
+            <img
+              src={defaultImageLogoSrc}
+              alt={pattern.name}
+              style={{ height: `${Math.round(logoPx * 1.05)}px` }}
+              className="w-auto object-contain drop-shadow-[0_0_36px_rgba(251,171,24,0.55)]"
+            />
+          ) : (
+            <div
+              style={{
+                width: `${Math.round(logoPx * 0.85)}px`,
+                height: `${Math.round(logoPx * 0.85)}px`,
+                borderColor: accentPrimary,
+                backgroundColor: `${accentSecondary}55`,
+                boxShadow: `0 0 40px ${accentPrimary}66`,
+              }}
+              className="rounded-full border-2 flex items-center justify-center backdrop-blur-md shadow-2xl"
+            >
+              <EmblemIcon
+                style={{
+                  width: `${Math.round(logoPx * 0.44)}px`,
+                  height: `${Math.round(logoPx * 0.44)}px`,
+                  color: accentLight,
+                }}
+              />
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Ribbon Badge */}
       {config.celebrationRibbon?.trim() && (

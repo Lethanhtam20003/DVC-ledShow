@@ -1,5 +1,32 @@
 export const PATTERNS = [
   {
+    id: 'cdsqg-2026',
+    name: 'Ngày Chuyển Đổi Số Quốc Gia 3D',
+    subtitle: 'Bộ Nhận Diện Chính Thức 10.10.2026',
+    badge: '10.10.2026',
+    description:
+      'Biểu tượng 3 cánh xoay hội tụ và Con người số 3D kết hợp Vòng hội tụ Kiến trúc - Nền tảng - Dữ liệu - Kết quả theo chuẩn nhận diện 10.10.2026.',
+    colors: {
+      primary: '#FBAB18',
+      secondary: '#B5121B',
+      accent: '#FFF6E6',
+      bgTop: '#7A0C12',
+      bgBottom: '#1a0305',
+      particle: '#FBAB18',
+      grid: '#E65925',
+      bloomStrength: 1.0,
+    },
+    defaults: {
+      eventBadge: '10.10.2026 • NGÀY CHUYỂN ĐỔI SỐ QUỐC GIA',
+      eventTitle: 'CHÀO MỪNG NGÀY CHUYỂN ĐỔI SỐ QUỐC GIA NĂM 2026',
+      eventSubtitle:
+        'TỪ KIẾN TRÚC, NỀN TẢNG, DỮ LIỆU ĐẾN KẾT QUẢ THỰC CHẤT, NÂNG CAO HIỆU QUẢ QUẢN TRỊ QUỐC GIA',
+      celebrationTitle: 'KÍCH HOẠT NGÀY HỘI CHUYỂN ĐỔI SỐ 2026',
+      celebrationDesc:
+        'KIẾN TRÚC ĐỒNG BỘ - NỀN TẢNG VỮNG CHẮC - DỮ LIỆU THÔNG MINH - KẾT QUẢ THỰC CHẤT',
+    },
+  },
+  {
     id: 'dong-son',
     name: 'Trống Đồng Hoàng Gia 3D',
     subtitle: 'Lễ Tân Nhà Nước & Khánh Tiết',

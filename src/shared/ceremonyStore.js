@@ -12,7 +12,7 @@ export const DEFAULT_CONFIG = {
   podGap: 36,
   coreY: 0,
   coreScale: 1.0,
-  videoBgEnabled: true,
+  videoBgEnabled: false,
   videoSource: 'local', // 'local' (offline MP4) | 'youtube' | 'none'
   youtubeVideoId: 'sbDz4hoZWCk',
   videoOpacity: 0.55,
@@ -114,6 +114,8 @@ export function applyPatternDefaults(config, patternId) {
   return {
     ...config,
     patternId: pattern.id,
+    videoBgEnabled:
+      pattern.id === 'custom-ceremony' ? Boolean(config.videoBgEnabled) : false,
     eventBadge: pattern.defaults.eventBadge,
     eventTitle: pattern.defaults.eventTitle,
     eventSubtitle: pattern.defaults.eventSubtitle,

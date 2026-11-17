@@ -9,7 +9,6 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { getPatternById } from '../../shared/patterns';
 import {
   createBuildingFacadeTexture,
-  createFloorGlowTexture,
   createGlowParticleTexture,
 } from './threeAssets';
 
@@ -79,6 +78,33 @@ function createCurvedPetalGeometry(length = 1.45, width = 0.44) {
   return geo;
 }
 
+function createRoundedArcSegment(radius, tubeRadius, startAngle, arcAngle, material) {
+  const arcGroup = new THREE.Group();
+  const torus = new THREE.Mesh(
+    new THREE.TorusGeometry(radius, tubeRadius, 18, 72, arcAngle),
+    material
+  );
+  torus.rotation.z = startAngle;
+  arcGroup.add(torus);
+
+  const capGeo = new THREE.SphereGeometry(tubeRadius, 16, 16);
+  const startCap = new THREE.Mesh(capGeo, material);
+  startCap.position.set(
+    Math.cos(startAngle) * radius,
+    Math.sin(startAngle) * radius,
+    0
+  );
+  const endAngle = startAngle + arcAngle;
+  const endCap = new THREE.Mesh(capGeo, material);
+  endCap.position.set(
+    Math.cos(endAngle) * radius,
+    Math.sin(endAngle) * radius,
+    0
+  );
+  arcGroup.add(startCap, endCap);
+  return arcGroup;
+}
+
 function buildCenterpiece(patternId, colors, disposableTextures) {
   const group = new THREE.Group();
   const primaryColor = new THREE.Color(colors.primary);
@@ -108,7 +134,103 @@ function buildCenterpiece(patternId, colors, disposableTextures) {
     opacity: 0.85,
   });
 
-  if (patternId === 'dong-son') {
+  if (patternId === 'cdsqg-2026') {
+    // Official 10.10.2026 National Digital Transformation Day Emblem & 3 Convergence Rings
+    const loader = new THREE.TextureLoader();
+    const logoTex = loader.load('./logo-cdsqg-2026.png');
+    logoTex.colorSpace = THREE.SRGBColorSpace;
+    logoTex.anisotropy = 8;
+    disposableTextures.push(logoTex);
+
+    const goldMat = new THREE.MeshPhysicalMaterial({
+      color: new THREE.Color('#FBAB18'),
+      emissive: new THREE.Color('#E65925'),
+      emissiveIntensity: 0.45,
+      metalness: 0.78,
+      roughness: 0.18,
+      clearcoat: 0.9,
+    });
+
+    const orangeMat = new THREE.MeshPhysicalMaterial({
+      color: new THREE.Color('#E65925'),
+      emissive: new THREE.Color('#B5121B'),
+      emissiveIntensity: 0.48,
+      metalness: 0.72,
+      roughness: 0.2,
+      clearcoat: 0.85,
+    });
+
+    const crimsonMat = new THREE.MeshPhysicalMaterial({
+      color: new THREE.Color('#B5121B'),
+      emissive: new THREE.Color('#7A0C12'),
+      emissiveIntensity: 0.55,
+      metalness: 0.68,
+      roughness: 0.22,
+      clearcoat: 0.9,
+    });
+
+    const emblemGroup = new THREE.Group();
+
+    // Single crisp high-resolution 10.10.2026 logo disc (no duplicate overlapping geometry)
+    const logoFaceMat = new THREE.MeshStandardMaterial({
+      map: logoTex,
+      emissiveMap: logoTex,
+      emissive: new THREE.Color('#FBAB18'),
+      emissiveIntensity: 0.28,
+      metalness: 0.18,
+      roughness: 0.35,
+      transparent: true,
+      alphaTest: 0.03,
+      side: THREE.FrontSide,
+    });
+
+    const emblemDisc = new THREE.Mesh(
+      new THREE.CircleGeometry(1.42, 96),
+      logoFaceMat
+    );
+
+    // Subtle outer golden frame ring completely outside the emblem blades
+    const emblemFrameRing = new THREE.Mesh(
+      new THREE.TorusGeometry(1.56, 0.022, 18, 128),
+      goldMat
+    );
+
+    emblemGroup.add(emblemDisc, emblemFrameRing);
+
+    // 3 Concentric 3D Convergence Rings ("Vòng hội tụ": Kết quả -> Dữ liệu -> Nền tảng)
+    const innerConvRing = new THREE.Group();
+    innerConvRing.add(
+      createRoundedArcSegment(1.94, 0.052, -0.38, Math.PI * 1.48, goldMat),
+      createRoundedArcSegment(1.94, 0.044, Math.PI * 1.24, Math.PI * 0.22, orangeMat)
+    );
+
+    const midConvRing = new THREE.Group();
+    midConvRing.add(
+      createRoundedArcSegment(2.38, 0.055, -Math.PI * 0.48, Math.PI * 1.56, orangeMat),
+      createRoundedArcSegment(2.38, 0.055, Math.PI * 0.78, Math.PI * 0.14, goldMat)
+    );
+
+    const outerConvRing = new THREE.Group();
+    outerConvRing.add(
+      createRoundedArcSegment(2.82, 0.05, -Math.PI * 0.65, Math.PI * 1.38, crimsonMat),
+      createRoundedArcSegment(2.82, 0.046, Math.PI * 0.86, Math.PI * 0.36, orangeMat)
+    );
+
+    group.add(
+      emblemGroup,
+      innerConvRing,
+      midConvRing,
+      outerConvRing
+    );
+    group.userData = {
+      emblemGroup,
+      emblemDisc,
+      emblemFrameRing,
+      innerConvRing,
+      midConvRing,
+      outerConvRing,
+    };
+  } else if (patternId === 'dong-son') {
     // Load authentic high-res Ngoc Lu Dong Son drum texture from public/dong-son-drum.png
     const loader = new THREE.TextureLoader();
     const drumTex = loader.load('./dong-son-drum.png');
@@ -759,7 +881,8 @@ export default function ThreeStage({
     const height = container.clientHeight || window.innerHeight;
 
     const camera = new THREE.PerspectiveCamera(55, width / height, 0.1, 120);
-    camera.position.set(0, 1.4, 9.2);
+    camera.position.set(0, 0.45, 9.2);
+    camera.lookAt(0, 0.45, 0);
 
     const renderer = new THREE.WebGLRenderer({
       antialias: true,
@@ -798,62 +921,6 @@ export default function ThreeStage({
     const rimLight = new THREE.PointLight(colors.accent, 12, 32);
     rimLight.position.set(-4.5, -2, 4.5);
     scene.add(ambient, keyLight, rimLight);
-
-    // Smooth radial-faded 3D Stage Floor Disc + Royal Ceremonial 3D Rings
-    const floorTex = createFloorGlowTexture(colors.primary, colors.grid);
-    disposableTextures.push(floorTex);
-    const floorMesh = new THREE.Mesh(
-      new THREE.PlaneGeometry(34, 34),
-      new THREE.MeshBasicMaterial({
-        map: floorTex,
-        transparent: true,
-        opacity: 0.88,
-        blending: THREE.AdditiveBlending,
-        depthWrite: false,
-      })
-    );
-    floorMesh.rotation.x = -Math.PI / 2;
-    floorMesh.position.y = -2.95;
-    scene.add(floorMesh);
-
-    const floorRingGroup = new THREE.Group();
-    floorRingGroup.position.y = -2.92;
-    const floorInnerRing = new THREE.Mesh(
-      new THREE.TorusGeometry(3.4, 0.032, 16, 128),
-      new THREE.MeshBasicMaterial({
-        color: colors.primary,
-        transparent: true,
-        opacity: 0.65,
-      })
-    );
-    floorInnerRing.rotation.x = Math.PI / 2;
-
-    const floorOuterRing = new THREE.Mesh(
-      new THREE.TorusGeometry(5.1, 0.024, 16, 128),
-      new THREE.MeshBasicMaterial({
-        color: colors.accent,
-        transparent: true,
-        opacity: 0.45,
-      })
-    );
-    floorOuterRing.rotation.x = Math.PI / 2;
-
-    // 12 golden ceremonial floor markers around podium perimeter
-    for (let i = 0; i < 12; i++) {
-      const a = (i / 12) * Math.PI * 2;
-      const marker = new THREE.Mesh(
-        new THREE.OctahedronGeometry(0.08, 0),
-        new THREE.MeshBasicMaterial({
-          color: colors.accent,
-          transparent: true,
-          opacity: 0.75,
-        })
-      );
-      marker.position.set(Math.cos(a) * 4.25, 0.04, Math.sin(a) * 4.25);
-      floorRingGroup.add(marker);
-    }
-    floorRingGroup.add(floorInnerRing, floorOuterRing);
-    scene.add(floorRingGroup);
 
     // Centerpiece 3D Group
     let mixer = null;
@@ -968,14 +1035,6 @@ export default function ThreeStage({
     const particles = new THREE.Points(pGeo, pMat);
     scene.add(particles);
 
-    // Mouse parallax
-    const pointer = { x: 0, y: 0 };
-    const onPointerMove = (e) => {
-      pointer.x = (e.clientX / window.innerWidth - 0.5) * 0.6;
-      pointer.y = (e.clientY / window.innerHeight - 0.5) * 0.4;
-    };
-    window.addEventListener('pointermove', onPointerMove);
-
     const onResize = () => {
       const w = container.clientWidth || window.innerWidth;
       const h = container.clientHeight || window.innerHeight;
@@ -1025,9 +1084,6 @@ export default function ThreeStage({
       const isCeleb = curPhase === 'celebration';
       const speedMul = isCharging ? 1 + (curProg / 100) * 3.2 : isCeleb ? 0.65 : 1;
 
-      floorMesh.rotation.z = t * 0.03 * speedMul;
-      floorRingGroup.rotation.y = -t * 0.08 * speedMul;
-
       if (mixer) {
         mixer.update(dt * (isCharging ? 1 + (curProg / 100) * 1.4 : 1));
       }
@@ -1071,7 +1127,22 @@ export default function ThreeStage({
           centerpiece.rotation.y += dt * rotSpeed;
         } else {
           const ud = centerpiece.userData;
-          if (activeModelId === 'dong-son') {
+          if (activeModelId === 'cdsqg-2026') {
+            if (ud.emblemDisc) {
+              const discPulse =
+                1 + Math.sin(t * 2.2 * speedMul) * (isCharging ? 0.045 : 0.018);
+              ud.emblemDisc.scale.setScalar(discPulse);
+            }
+            if (ud.innerConvRing) {
+              ud.innerConvRing.rotation.z = t * 0.34 * speedMul;
+            }
+            if (ud.midConvRing) {
+              ud.midConvRing.rotation.z = -t * 0.24 * speedMul;
+            }
+            if (ud.outerConvRing) {
+              ud.outerConvRing.rotation.z = t * 0.16 * speedMul;
+            }
+          } else if (activeModelId === 'dong-son') {
             if (ud.coreDisc) ud.coreDisc.rotation.z = t * 0.09 * speedMul;
             if (ud.backHaloDisc) ud.backHaloDisc.rotation.z = -t * 0.05 * speedMul;
             if (ud.orbitRing1) {
@@ -1155,9 +1226,9 @@ export default function ThreeStage({
 
       const targetZ = isCharging ? 9.2 - (curProg / 100) * 1.8 : isCeleb ? 11.2 : 9.2;
       camera.position.z = THREE.MathUtils.damp(camera.position.z, targetZ, 4.0, dt);
-      camera.position.x = THREE.MathUtils.damp(camera.position.x, pointer.x, 3.5, dt);
-      camera.position.y = THREE.MathUtils.damp(camera.position.y, 1.2 - pointer.y, 3.5, dt);
-      camera.lookAt(0, 0, 0);
+      camera.position.x = 0;
+      camera.position.y = 0.45;
+      camera.lookAt(0, 0.45, 0);
 
       particles.rotation.y = t * (isCharging ? 0.28 : 0.045);
       pMat.opacity = isCharging ? 0.82 - (curProg / 100) * 0.28 : 0.82;
@@ -1198,7 +1269,6 @@ export default function ThreeStage({
     return () => {
       isDisposed = true;
       cancelAnimationFrame(rafId);
-      window.removeEventListener('pointermove', onPointerMove);
       window.removeEventListener('resize', onResize);
 
       if (mixer) {

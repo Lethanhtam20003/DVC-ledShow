@@ -13,10 +13,10 @@ import {
 } from '../src/shared/ceremonyStore.js';
 import { BUILTIN_3D_MODELS } from '../src/shared/models3d.js';
 
-test('PATTERNS contains 5 unique stage patterns with required fields', () => {
-  assert.equal(PATTERNS.length, 5);
+test('PATTERNS contains 6 unique stage patterns with required fields', () => {
+  assert.equal(PATTERNS.length, 6);
   const ids = new Set(PATTERNS.map((p) => p.id));
-  assert.equal(ids.size, 5);
+  assert.equal(ids.size, 6);
 
   for (const p of PATTERNS) {
     assert.ok(p.name && p.colors?.primary && p.colors?.bgBottom);
@@ -88,9 +88,10 @@ test('createSyncChannel returns safe no-op when BroadcastChannel is unavailable'
   });
 });
 
-test('BUILTIN_3D_MODELS contains all 8 expected 3D model presets', () => {
-  assert.equal(BUILTIN_3D_MODELS.length, 8);
+test('BUILTIN_3D_MODELS contains all 9 expected 3D model presets', () => {
+  assert.equal(BUILTIN_3D_MODELS.length, 9);
   const expectedIds = [
+    'cdsqg-2026',
     'dong-son',
     'holo-globe',
     'smart-city',

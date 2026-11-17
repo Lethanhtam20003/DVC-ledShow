@@ -1,5 +1,12 @@
 export const BUILTIN_3D_MODELS = [
   {
+    id: 'cdsqg-2026',
+    name: 'Biểu Tượng CĐSQG 10.10.2026 3D',
+    subtitle: 'Logo 3 cánh xoay hội tụ & Vòng hội tụ dữ liệu 2026',
+    badge: '10.10.2026',
+    accentColor: '#FBAB18',
+  },
+  {
     id: 'dong-son',
     name: 'Trống Đồng Hoàng Gia 3D',
     subtitle: 'Biểu tượng văn hóa & lễ tân nhà nước',
@@ -58,5 +65,9 @@ export const BUILTIN_3D_MODELS = [
 ];
 
 export function getBuiltin3dModelById(id) {
-  return BUILTIN_3D_MODELS.find((m) => m.id === id) || BUILTIN_3D_MODELS[3];
+  return (
+    BUILTIN_3D_MODELS.find((m) => m.id === id) ||
+    BUILTIN_3D_MODELS.find((m) => m.id === 'crystal-core') ||
+    BUILTIN_3D_MODELS[0]
+  );
 }
