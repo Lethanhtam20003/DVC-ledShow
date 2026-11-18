@@ -1,6 +1,8 @@
 import { getPatternById } from './patterns.js';
 
 export const STORAGE_KEY = 'cham_tay_studio_config_v2';
+export const PATTERN_CONFIGS_KEY = 'cham_tay_pattern_configs_v1';
+export const SAVED_PRESETS_KEY = 'cham_tay_saved_presets_v1';
 export const CHANNEL_NAME = 'cham_tay_stage_sync_v2';
 
 export const DEFAULT_CONFIG = {
@@ -31,6 +33,7 @@ export const DEFAULT_CONFIG = {
   bgAudioEnabled: false,
   bgAudioVolume: 0.45,
   hasCustomBgAudio: false,
+  hasCustomCountdownAudio: false,
   hasCustomFanfareAudio: false,
   showHeader: false,
   eventBadge: 'ỦY BAN NHÂN DÂN • NGÀY HỘI CHUYỂN ĐỔI SỐ',
@@ -41,6 +44,7 @@ export const DEFAULT_CONFIG = {
   customLogoData: null,
 
   // Custom Hand & Video Ceremony Settings
+  handIconStyle: 'palm', // 'palm' | 'one-finger' | 'fingerprint'
   handGlowColor: '#f5c542',
   showPodLabels: true,
   podLabels: ['Đại biểu 1', 'Đại biểu 2', 'Đại biểu 3', 'Đại biểu 4', 'Đại biểu 5'],
@@ -75,6 +79,7 @@ export function extractYouTubeId(urlOrId) {
 }
 
 const VALID_3D_MODEL_TYPES = new Set(['preset', 'uploaded', 'none']);
+const VALID_HAND_ICON_STYLES = new Set(['palm', 'one-finger', 'fingerprint']);
 
 export function normalizeConfig(rawConfig = {}) {
   const merged = { ...DEFAULT_CONFIG, ...(rawConfig && typeof rawConfig === 'object' ? rawConfig : {}) };
@@ -83,6 +88,9 @@ export function normalizeConfig(rawConfig = {}) {
   }
   if (typeof merged.custom3dModelId !== 'string' || !merged.custom3dModelId.trim()) {
     merged.custom3dModelId = DEFAULT_CONFIG.custom3dModelId;
+  }
+  if (!VALID_HAND_ICON_STYLES.has(merged.handIconStyle)) {
+    merged.handIconStyle = DEFAULT_CONFIG.handIconStyle;
   }
   return merged;
 }
@@ -101,9 +109,34 @@ export function loadConfig() {
   }
 }
 
+export function loadPatternConfigs() {
+  try {
+    const raw = localStorage.getItem(PATTERN_CONFIGS_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+export function savePatternConfigForId(patternId, config) {
+  if (!patternId || !config) return;
+  try {
+    const map = loadPatternConfigs();
+    map[patternId] = normalizeConfig({ ...config, patternId });
+    localStorage.setItem(PATTERN_CONFIGS_KEY, JSON.stringify(map));
+  } catch (err) {
+    console.warn('Could not save per-pattern config:', err);
+  }
+}
+
 export function saveConfig(config) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
+    if (config?.patternId) {
+      savePatternConfigForId(config.patternId, config);
+    }
   } catch (err) {
     console.warn('Could not save config to localStorage:', err);
   }
@@ -122,6 +155,99 @@ export function applyPatternDefaults(config, patternId) {
     celebrationTitle: pattern.defaults.celebrationTitle,
     celebrationDesc: pattern.defaults.celebrationDesc,
   };
+}
+
+export function switchPattern(currentConfig, nextPatternId) {
+  const pattern = getPatternById(nextPatternId);
+  if (currentConfig?.patternId) {
+    savePatternConfigForId(currentConfig.patternId, currentConfig);
+  }
+  const map = loadPatternConfigs();
+  const savedForTarget = map[pattern.id];
+  if (savedForTarget && typeof savedForTarget === 'object') {
+    const restored = normalizeConfig({ ...savedForTarget, patternId: pattern.id });
+    savePatternConfigForId(pattern.id, restored);
+    return restored;
+  }
+  const fresh = applyPatternDefaults(currentConfig || DEFAULT_CONFIG, pattern.id);
+  savePatternConfigForId(pattern.id, fresh);
+  return fresh;
+}
+
+export function resetPatternConfig(currentConfig, patternId) {
+  const targetId = patternId || currentConfig?.patternId || DEFAULT_CONFIG.patternId;
+  const pattern = getPatternById(targetId);
+  const fresh = applyPatternDefaults(DEFAULT_CONFIG, pattern.id);
+  try {
+    const map = loadPatternConfigs();
+    delete map[pattern.id];
+    localStorage.setItem(PATTERN_CONFIGS_KEY, JSON.stringify(map));
+  } catch (err) {
+    console.warn('Could not reset pattern config:', err);
+  }
+  saveConfig(fresh);
+  return fresh;
+}
+
+export function loadSavedPresets() {
+  try {
+    const raw = localStorage.getItem(SAVED_PRESETS_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter((item) => item && typeof item === 'object' && item.id && item.config)
+      .map((item) => ({
+        id: String(item.id),
+        name: String(item.name || 'Thiết lập chưa đặt tên'),
+        patternId: String(item.patternId || item.config.patternId || DEFAULT_CONFIG.patternId),
+        updatedAt: Number(item.updatedAt) || Date.now(),
+        config: normalizeConfig(item.config),
+      }))
+      .sort((a, b) => b.updatedAt - a.updatedAt);
+  } catch {
+    return [];
+  }
+}
+
+export function saveNamedPreset({ id, name, config }) {
+  const normalized = normalizeConfig(config || DEFAULT_CONFIG);
+  const pattern = getPatternById(normalized.patternId);
+  const cleanName =
+    (typeof name === 'string' && name.trim()) ||
+    `${pattern.name} - ${normalized.eventTitle?.slice(0, 28) || 'Mặc định'}`;
+  const now = Date.now();
+  const existing = loadSavedPresets();
+  const presetId =
+    typeof id === 'string' && id.trim()
+      ? id.trim()
+      : `preset-${now}-${Math.random().toString(36).slice(2, 7)}`;
+
+  const entry = {
+    id: presetId,
+    name: cleanName,
+    patternId: pattern.id,
+    updatedAt: now,
+    config: JSON.parse(JSON.stringify(normalized)),
+  };
+
+  const next = [entry, ...existing.filter((item) => item.id !== presetId)];
+  try {
+    localStorage.setItem(SAVED_PRESETS_KEY, JSON.stringify(next));
+  } catch (err) {
+    console.warn('Could not save named preset:', err);
+  }
+  return { preset: entry, presets: next };
+}
+
+export function deleteSavedPreset(id) {
+  const next = loadSavedPresets().filter((item) => item.id !== id);
+  try {
+    localStorage.setItem(SAVED_PRESETS_KEY, JSON.stringify(next));
+  } catch (err) {
+    console.warn('Could not delete named preset:', err);
+  }
+  return next;
 }
 
 export function createSyncChannel(onMessage) {

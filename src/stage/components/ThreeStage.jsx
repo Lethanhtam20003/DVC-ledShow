@@ -78,6 +78,24 @@ function createCurvedPetalGeometry(length = 1.45, width = 0.44) {
   return geo;
 }
 
+function applyPlanarCenterUVs(
+  geometry,
+  fullRadius,
+  centerU = 0.5,
+  centerV = 0.5
+) {
+  const pos = geometry.attributes.position;
+  const uv = geometry.attributes.uv;
+  const diameter = fullRadius * 2;
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i);
+    const y = pos.getY(i);
+    uv.setXY(i, centerU + x / diameter, centerV + y / diameter);
+  }
+  uv.needsUpdate = true;
+  return geometry;
+}
+
 function createRoundedArcSegment(radius, tubeRadius, startAngle, arcAngle, material) {
   const arcGroup = new THREE.Group();
   const torus = new THREE.Mesh(
@@ -171,7 +189,7 @@ function buildCenterpiece(patternId, colors, disposableTextures) {
 
     const emblemGroup = new THREE.Group();
 
-    // Single crisp high-resolution 10.10.2026 logo disc (no duplicate overlapping geometry)
+    // Official 10.10.2026 logo material
     const logoFaceMat = new THREE.MeshStandardMaterial({
       map: logoTex,
       emissiveMap: logoTex,
@@ -184,10 +202,30 @@ function buildCenterpiece(patternId, colors, disposableTextures) {
       side: THREE.FrontSide,
     });
 
-    const emblemDisc = new THREE.Mesh(
-      new THREE.CircleGeometry(1.42, 96),
-      logoFaceMat
+    // Split at the exact transparent radial gap (410px / 900px) around the true
+    // geometric center (893.3, 928.8) of the 1800x1800 logo texture
+    const fullRadius = 1.42;
+    const splitRadius = fullRadius * (410 / 900);
+    const logoCenterU = 893.3 / 1800;
+    const logoCenterV = 1 - 928.8 / 1800;
+
+    // 1. Stationary upright central human figure
+    const coreHumanGeo = applyPlanarCenterUVs(
+      new THREE.CircleGeometry(splitRadius, 96),
+      fullRadius,
+      logoCenterU,
+      logoCenterV
     );
+    const coreHumanDisc = new THREE.Mesh(coreHumanGeo, logoFaceMat);
+
+    // 2. Rotating 3 outer crescent blades of the logo
+    const outerBladesGeo = applyPlanarCenterUVs(
+      new THREE.RingGeometry(splitRadius, fullRadius, 128, 1),
+      fullRadius,
+      logoCenterU,
+      logoCenterV
+    );
+    const outerBladesRing = new THREE.Mesh(outerBladesGeo, logoFaceMat);
 
     // Subtle outer golden frame ring completely outside the emblem blades
     const emblemFrameRing = new THREE.Mesh(
@@ -195,7 +233,7 @@ function buildCenterpiece(patternId, colors, disposableTextures) {
       goldMat
     );
 
-    emblemGroup.add(emblemDisc, emblemFrameRing);
+    emblemGroup.add(coreHumanDisc, outerBladesRing, emblemFrameRing);
 
     // 3 Concentric 3D Convergence Rings ("Vòng hội tụ": Kết quả -> Dữ liệu -> Nền tảng)
     const innerConvRing = new THREE.Group();
@@ -224,7 +262,8 @@ function buildCenterpiece(patternId, colors, disposableTextures) {
     );
     group.userData = {
       emblemGroup,
-      emblemDisc,
+      coreHumanDisc,
+      outerBladesRing,
       emblemFrameRing,
       innerConvRing,
       midConvRing,
@@ -839,6 +878,7 @@ export default function ThreeStage({
   coreY = 0,
   coreScale = 1,
   hideCenterpiece = false,
+  isPreview = false,
   custom3dModelType = 'preset',
   custom3dModelId = 'crystal-core',
   custom3dModelUrl = null,
@@ -885,12 +925,16 @@ export default function ThreeStage({
     camera.lookAt(0, 0.45, 0);
 
     const renderer = new THREE.WebGLRenderer({
-      antialias: true,
+      antialias: !isPreview,
       alpha: true,
       powerPreference: 'high-performance',
     });
+    const targetPixelRatio = isPreview
+      ? 0.75
+      : Math.min(window.devicePixelRatio || 1, 1.5);
     renderer.setSize(width, height);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setPixelRatio(targetPixelRatio);
+    renderer.setClearColor(0x000000, 0);
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 0.92;
     container.appendChild(renderer.domElement);
@@ -903,7 +947,11 @@ export default function ThreeStage({
     roomEnv.dispose();
 
     const composer = new EffectComposer(renderer);
-    composer.addPass(new RenderPass(scene, camera));
+    const renderPass = new RenderPass(scene, camera);
+    renderPass.clearColor = new THREE.Color(0x000000);
+    renderPass.clearAlpha = 0;
+    composer.addPass(renderPass);
+
     const baseBloom = colors.bloomStrength * 0.48;
     const bloomPass = new UnrealBloomPass(
       new THREE.Vector2(width, height),
@@ -911,6 +959,15 @@ export default function ThreeStage({
       0.42,
       0.68
     );
+    // Preserve canvas transparency on empty pixels so background video at z-0 shines through
+    bloomPass.compositeMaterial.fragmentShader =
+      bloomPass.compositeMaterial.fragmentShader.replace(
+        /gl_FragColor\s*=\s*bloomStrength\s*\*([\s\S]*?);/,
+        `vec4 bloomSum = bloomStrength * ($1);
+         float bloomAlpha = clamp(max(bloomSum.r, max(bloomSum.g, bloomSum.b)) * 1.8, 0.0, 1.0);
+         gl_FragColor = vec4(bloomSum.rgb, bloomAlpha);`
+      );
+    bloomPass.compositeMaterial.needsUpdate = true;
     composer.addPass(bloomPass);
     composer.addPass(new OutputPass());
 
@@ -1004,10 +1061,11 @@ export default function ThreeStage({
     const particleTex = createGlowParticleTexture();
     disposableTextures.push(particleTex);
 
-    const particleCount = 1600;
+    const particleCount = isPreview ? 650 : 950;
     const pGeo = new THREE.BufferGeometry();
     const pPos = new Float32Array(particleCount * 3);
     const pBase = new Float32Array(particleCount * 3);
+    const pSeed = new Float32Array(particleCount);
     for (let i = 0; i < particleCount; i++) {
       const r = 3.4 + Math.random() * 12;
       const theta = Math.random() * Math.PI * 2;
@@ -1020,6 +1078,7 @@ export default function ThreeStage({
       pBase[i * 3] = x;
       pBase[i * 3 + 1] = y;
       pBase[i * 3 + 2] = z;
+      pSeed[i] = Math.random();
     }
     pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
     const pMat = new THREE.PointsMaterial({
@@ -1049,6 +1108,7 @@ export default function ThreeStage({
     let elapsed = 0;
     let prevPhase = stateRef.current.phase;
     let shockwaveLife = 0;
+    let celebBurstTime = 0;
     let rafId = 0;
 
     const animate = () => {
@@ -1065,24 +1125,44 @@ export default function ThreeStage({
         hideCenterpiece: hideCore,
       } = stateRef.current;
 
+      if (hideCore) {
+        if (prevPhase !== curPhase) {
+          renderer.clear();
+          prevPhase = curPhase;
+        }
+        return;
+      }
+
       if (prevPhase !== 'celebration' && curPhase === 'celebration') {
         shockwaveLife = 1.0;
+        celebBurstTime = 0.001;
         shockwaveRing.scale.setScalar(0.5);
+      } else if (curPhase !== 'celebration') {
+        celebBurstTime = 0;
       }
       prevPhase = curPhase;
 
+      if (celebBurstTime > 0) {
+        celebBurstTime += dt;
+      }
+
       if (shockwaveLife > 0) {
         shockwaveLife = Math.max(0, shockwaveLife - dt * 1.15);
-        const expand = 1 + (1 - shockwaveLife) * 11;
+        const expand = 1 + (1 - shockwaveLife) * 14;
         shockwaveRing.scale.setScalar(expand);
-        shockwaveMat.opacity = shockwaveLife * 0.55;
+        shockwaveMat.opacity = shockwaveLife * 0.75;
       } else {
         shockwaveMat.opacity = 0;
       }
 
       const isCharging = curPhase === 'charging';
       const isCeleb = curPhase === 'celebration';
-      const speedMul = isCharging ? 1 + (curProg / 100) * 3.2 : isCeleb ? 0.65 : 1;
+      const chargeNorm = Math.max(0, Math.min(1, curProg / 100));
+      const speedMul = isCharging
+        ? 1 + chargeNorm * 3.5 + chargeNorm * chargeNorm * 6.5
+        : isCeleb
+          ? 0.65
+          : 1;
 
       if (mixer) {
         mixer.update(dt * (isCharging ? 1 + (curProg / 100) * 1.4 : 1));
@@ -1128,19 +1208,24 @@ export default function ThreeStage({
         } else {
           const ud = centerpiece.userData;
           if (activeModelId === 'cdsqg-2026') {
-            if (ud.emblemDisc) {
-              const discPulse =
-                1 + Math.sin(t * 2.2 * speedMul) * (isCharging ? 0.045 : 0.018);
-              ud.emblemDisc.scale.setScalar(discPulse);
+            // Accelerating spin as countdown progresses (1x -> 14x speed)
+            const cdsqgAccel = isCharging
+              ? 1 + chargeNorm * 4.5 + chargeNorm * chargeNorm * 8.5
+              : isCeleb
+                ? 0.8
+                : 1;
+            const rotStep = dt * cdsqgAccel;
+            if (ud.outerBladesRing) {
+              ud.outerBladesRing.rotation.z -= rotStep * 0.85;
             }
             if (ud.innerConvRing) {
-              ud.innerConvRing.rotation.z = t * 0.34 * speedMul;
+              ud.innerConvRing.rotation.z += rotStep * 0.48;
             }
             if (ud.midConvRing) {
-              ud.midConvRing.rotation.z = -t * 0.24 * speedMul;
+              ud.midConvRing.rotation.z -= rotStep * 0.36;
             }
             if (ud.outerConvRing) {
-              ud.outerConvRing.rotation.z = t * 0.16 * speedMul;
+              ud.outerConvRing.rotation.z += rotStep * 0.25;
             }
           } else if (activeModelId === 'dong-son') {
             if (ud.coreDisc) ud.coreDisc.rotation.z = t * 0.09 * speedMul;
@@ -1224,26 +1309,87 @@ export default function ThreeStage({
         }
       }
 
-      const targetZ = isCharging ? 9.2 - (curProg / 100) * 1.8 : isCeleb ? 11.2 : 9.2;
+      const targetZ =
+        activeModelId === 'cdsqg-2026'
+          ? isCeleb
+            ? 11.2
+            : 9.2
+          : isCharging
+            ? 9.2 - (curProg / 100) * 1.8
+            : isCeleb
+              ? 11.2
+              : 9.2;
       camera.position.z = THREE.MathUtils.damp(camera.position.z, targetZ, 4.0, dt);
       camera.position.x = 0;
       camera.position.y = 0.45;
       camera.lookAt(0, 0.45, 0);
 
-      particles.rotation.y = t * (isCharging ? 0.28 : 0.045);
-      pMat.opacity = isCharging ? 0.82 - (curProg / 100) * 0.28 : 0.82;
+      const logoCenterY = centerpiece.position.y || 0.45;
+      if (isCharging) {
+        particles.rotation.y = 0;
+        pMat.opacity = Math.min(1, 0.85 + chargeNorm * 0.15);
+        pMat.size = 0.16 + chargeNorm * 0.09;
+      } else if (isCeleb && celebBurstTime > 0 && celebBurstTime < 3.0) {
+        particles.rotation.y = t * 0.08;
+        pMat.opacity = Math.max(0.78, 1 - celebBurstTime * 0.08);
+        pMat.size = Math.max(0.16, 0.28 - celebBurstTime * 0.04);
+      } else {
+        particles.rotation.y = t * 0.045;
+        pMat.opacity = 0.85;
+        pMat.size = 0.16;
+      }
+
       const posAttr = pGeo.attributes.position;
       for (let i = 0; i < particleCount; i++) {
         const bx = pBase[i * 3];
         const by = pBase[i * 3 + 1];
         const bz = pBase[i * 3 + 2];
+        const seed = pSeed[i];
+
         if (isCharging) {
-          const pull = 1 - (curProg / 100) * 0.38;
+          // Converge particles in an accelerating spiral vortex directly into the logo core (0, logoCenterY, 0)
+          const streamCycle = (t * (0.45 + chargeNorm * 1.65) + seed) % 1;
+          const envelope = Math.max(0.04, 1 - Math.pow(chargeNorm, 1.15) * 0.92);
+          const radialFactor = envelope * (1 - streamCycle * (0.55 + chargeNorm * 0.42));
+          const swirlAngle =
+            (1 - radialFactor) * (2.2 + chargeNorm * 6.5) + seed * Math.PI * 2;
+          const cosA = Math.cos(swirlAngle);
+          const sinA = Math.sin(swirlAngle);
+          const rx = bx * cosA - by * sinA;
+          const ry = bx * sinA + by * cosA;
+
           posAttr.setXYZ(
             i,
-            bx * pull,
-            by * pull + Math.sin(t * 2 + i) * 0.08,
-            bz * pull
+            rx * radialFactor,
+            logoCenterY + (ry - logoCenterY) * radialFactor,
+            bz * radialFactor
+          );
+        } else if (isCeleb && celebBurstTime > 0) {
+          // Explosive outward radial burst from the logo center (0, logoCenterY, 0) when countdown finishes
+          const dy = by - logoCenterY;
+          const dist = Math.hypot(bx, dy, bz) || 1;
+          const dirX = bx / dist;
+          const dirY = dy / dist;
+          const dirZ = bz / dist;
+
+          const burstSpeed = 6.5 + seed * 14.0;
+          const burstProgress = 1 - Math.exp(-celebBurstTime * 2.6);
+          const burstDist = 0.15 + burstProgress * burstSpeed;
+          const settleMix = Math.min(1, Math.max(0, (celebBurstTime - 1.2) / 2.0));
+
+          const burstX = dirX * burstDist;
+          const burstY = logoCenterY + dirY * burstDist;
+          const burstZ = dirZ * burstDist;
+
+          const calmX = bx;
+          const calmY = by + Math.sin(t + i * 0.2) * 0.25;
+          const calmZ = bz;
+
+          posAttr.setXYZ(
+            i,
+            burstX + (calmX - burstX) * settleMix,
+            burstY + (calmY - burstY) * settleMix,
+            burstZ + (calmZ - burstZ) * settleMix
           );
         } else {
           posAttr.setXYZ(i, bx, by + Math.sin(t + i * 0.2) * 0.25, bz);

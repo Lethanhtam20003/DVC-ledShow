@@ -5,10 +5,10 @@ import Celebration from './Celebration';
 import { getPatternById } from '../../shared/patterns';
 import { extractYouTubeId } from '../../shared/ceremonyStore';
 
-const DEFAULT_LOCAL_VIDEO_SRC =
-  './Background Trống Đồng Bản Đồ Việt Nam - I Love Viet Nam - YouTube.mp4';
+const DEFAULT_LOCAL_VIDEO_SRC = './bg-trong-dong-loop.mp4';
 
 function StageContent({
+  isPreview = false,
   config,
   phase,
   progress,
@@ -35,13 +35,17 @@ function StageContent({
     phase === 'charging' && customActivationVideoUrl
   );
 
+  const brightnessDim = Math.max(0, Math.min(0.65, 1 - effectiveBrightness / 100));
+  const combinedTint = Math.min(
+    0.9,
+    1 - (1 - (config.tintDarkness ?? 0.45)) * (1 - brightnessDim)
+  );
+
   return (
     <div
       className="relative w-full h-full overflow-hidden select-none"
       style={{
         background: `radial-gradient(circle at 50% 40%, ${pattern.colors.bgTop}, ${pattern.colors.bgBottom} 80%)`,
-        filter: `brightness(${effectiveBrightness / 100})`,
-        transition: 'filter 0.5s ease',
       }}
     >
       {/* Standby / Ambient Background Video Layer */}
@@ -55,8 +59,13 @@ function StageContent({
             loop
             muted
             playsInline
+            preload="auto"
             className="absolute inset-0 w-full h-full object-cover z-0 pointer-events-none"
-            style={{ opacity: config.videoOpacity }}
+            style={{
+              opacity: config.videoOpacity,
+              transform: 'translateZ(0)',
+              willChange: 'transform',
+            }}
           />
         )}
 
@@ -77,10 +86,10 @@ function StageContent({
           </div>
         )}
 
-      {/* Tint Overlay */}
+      {/* Tint + Brightness Dim Overlay (avoids heavy CSS filter:brightness on video+WebGL layers) */}
       <div
-        className="absolute inset-0 z-0 pointer-events-none"
-        style={{ backgroundColor: `rgba(0,0,0,${config.tintDarkness})` }}
+        className="absolute inset-0 z-0 pointer-events-none transition-colors duration-500"
+        style={{ backgroundColor: `rgba(0,0,0,${combinedTint})` }}
       />
 
       {/* 3D WebGL Stage Engine */}
@@ -91,6 +100,7 @@ function StageContent({
         coreY={config.coreY}
         coreScale={config.coreScale}
         hideCenterpiece={isPlayingActivationVideo}
+        isPreview={isPreview}
         custom3dModelType={config.custom3dModelType}
         custom3dModelId={config.custom3dModelId}
         custom3dModelUrl={custom3dModelUrl}
@@ -104,7 +114,9 @@ function StageContent({
           autoPlay
           muted={config.activationVideoMuted !== false}
           playsInline
+          preload="auto"
           onEnded={onActivationVideoEnded}
+          style={{ transform: 'translateZ(0)', willChange: 'transform' }}
           className="absolute inset-0 w-full h-full object-cover z-20 pointer-events-none"
         />
       )}
@@ -156,6 +168,7 @@ function StageContent({
         activeHands={activeHands}
         primaryColor={pattern.colors.primary}
         glowColor={config.handGlowColor}
+        handIconStyle={config.handIconStyle}
         customHandImageUrl={customHandImageUrl}
         showPodLabels={config.showPodLabels}
         podLabels={config.podLabels}
@@ -204,7 +217,7 @@ export default function StageViewport({ isPreview = false, ...props }) {
   if (!isPreview) {
     return (
       <div className="relative w-screen h-screen overflow-hidden">
-        <StageContent {...props} />
+        <StageContent isPreview={false} {...props} />
       </div>
     );
   }
@@ -222,7 +235,7 @@ export default function StageViewport({ isPreview = false, ...props }) {
           transform: `scale(${scale})`,
         }}
       >
-        <StageContent {...props} />
+        <StageContent isPreview {...props} />
       </div>
     </div>
   );

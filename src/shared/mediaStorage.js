@@ -56,14 +56,21 @@ export async function deleteMediaBlob(key) {
 
 export async function loadAllCustomMediaUrls() {
   try {
-    const [handBlob, bgVideoBlob, actVideoBlob, bgAudioBlob, fanfareAudioBlob] =
-      await Promise.all([
-        getMediaBlob('customHandImage'),
-        getMediaBlob('customBgVideo'),
-        getMediaBlob('customActivationVideo'),
-        getMediaBlob('customBgAudio'),
-        getMediaBlob('customFanfareAudio'),
-      ]);
+    const [
+      handBlob,
+      bgVideoBlob,
+      actVideoBlob,
+      bgAudioBlob,
+      countdownAudioBlob,
+      fanfareAudioBlob,
+    ] = await Promise.all([
+      getMediaBlob('customHandImage'),
+      getMediaBlob('customBgVideo'),
+      getMediaBlob('customActivationVideo'),
+      getMediaBlob('customBgAudio'),
+      getMediaBlob('customCountdownAudio'),
+      getMediaBlob('customFanfareAudio'),
+    ]);
     return {
       customHandImageUrl: handBlob ? URL.createObjectURL(handBlob) : null,
       customBgVideoUrl: bgVideoBlob ? URL.createObjectURL(bgVideoBlob) : null,
@@ -71,6 +78,9 @@ export async function loadAllCustomMediaUrls() {
         ? URL.createObjectURL(actVideoBlob)
         : null,
       customBgAudioUrl: bgAudioBlob ? URL.createObjectURL(bgAudioBlob) : null,
+      customCountdownAudioUrl: countdownAudioBlob
+        ? URL.createObjectURL(countdownAudioBlob)
+        : null,
       customFanfareAudioUrl: fanfareAudioBlob
         ? URL.createObjectURL(fanfareAudioBlob)
         : null,
@@ -81,6 +91,7 @@ export async function loadAllCustomMediaUrls() {
       customBgVideoUrl: null,
       customActivationVideoUrl: null,
       customBgAudioUrl: null,
+      customCountdownAudioUrl: null,
       customFanfareAudioUrl: null,
     };
   }

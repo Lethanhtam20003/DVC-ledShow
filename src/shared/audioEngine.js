@@ -1,3 +1,12 @@
+const BUILTIN_AUDIO_URLS = {
+  touch: './audio/touch-chime.mp3',
+  countdown: './audio/countdown-beep.mp3',
+  countdownImpact: './audio/countdown-impact.mp3',
+  countdownBuildup: './audio/countdown-buildup.mp3',
+  fanfare: './audio/celebration-fanfare.mp3',
+  bg: './audio/bg-ceremony.mp3',
+};
+
 export class StateCeremonyAudio {
   constructor() {
     this.ctx = null;
@@ -22,12 +31,24 @@ export class StateCeremonyAudio {
     this.bgAudioEnabled = false;
     this.bgAudioVolume = 0.45;
     this.customBgAudioUrl = null;
+    this.customCountdownAudioUrl = null;
     this.customFanfareAudioUrl = null;
 
     this.bgAudioEl = null;
+    this.countdownAudioEl = null;
     this.fanfareAudioEl = null;
+    this.activeCountdownBus = null;
     this.activeFanfareBus = null;
     this.bgDesiredPlaying = false;
+
+    this.sfxBuffers = {
+      touch: null,
+      countdown: null,
+      countdownImpact: null,
+      countdownBuildup: null,
+      fanfare: null,
+    };
+    this._sfxLoadingStarted = false;
   }
 
   _buildHallImpulse(ctx, duration = 2.6, decay = 2.4) {
@@ -106,6 +127,46 @@ export class StateCeremonyAudio {
         this.ctx.currentTime
       );
     }
+    this._preloadBuiltinSfx();
+  }
+
+  _preloadBuiltinSfx() {
+    if (this._sfxLoadingStarted || !this.ctx || typeof fetch !== 'function') return;
+    this._sfxLoadingStarted = true;
+    ['touch', 'countdown', 'countdownImpact', 'countdownBuildup', 'fanfare'].forEach(
+      async (key) => {
+      try {
+        const res = await fetch(BUILTIN_AUDIO_URLS[key]);
+        if (!res.ok) return;
+        const arr = await res.arrayBuffer();
+        if (!this.ctx) return;
+        const decoded = await this.ctx.decodeAudioData(arr);
+        this.sfxBuffers[key] = decoded;
+      } catch {
+        // Keep synth fallback silently if offline/blocked
+      }
+    });
+  }
+
+  _playSfxBuffer(key, { volume = 1, playbackRate = 1, targetBus = null, delay = 0 } = {}) {
+    const buffer = this.sfxBuffers[key];
+    if (!buffer || !this.ctx) return false;
+    const dest = targetBus || this.getDestination();
+    if (!dest) return false;
+    try {
+      const startAt = this.ctx.currentTime + Math.max(0, delay);
+      const src = this.ctx.createBufferSource();
+      src.buffer = buffer;
+      src.playbackRate.setValueAtTime(playbackRate, startAt);
+      const gain = this.ctx.createGain();
+      gain.gain.setValueAtTime(Math.max(0, Math.min(1.5, volume)), startAt);
+      src.connect(gain);
+      gain.connect(dest);
+      src.start(startAt);
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   configure(opts = {}) {
@@ -146,6 +207,13 @@ export class StateCeremonyAudio {
       this.stopBgMusic();
       this.customBgAudioUrl = opts.customBgAudioUrl;
     }
+    if (
+      opts.customCountdownAudioUrl !== undefined &&
+      opts.customCountdownAudioUrl !== this.customCountdownAudioUrl
+    ) {
+      this.stopCountdownLoop();
+      this.customCountdownAudioUrl = opts.customCountdownAudioUrl;
+    }
     if (opts.customFanfareAudioUrl !== undefined && opts.customFanfareAudioUrl !== this.customFanfareAudioUrl) {
       this.stopFanfare();
       this.customFanfareAudioUrl = opts.customFanfareAudioUrl;
@@ -165,6 +233,12 @@ export class StateCeremonyAudio {
       if (!this.enabled || !this.bgAudioEnabled) {
         this.bgAudioEl.pause();
       }
+    }
+    if (this.countdownAudioEl) {
+      this.countdownAudioEl.volume =
+        this.enabled && this.countdownSoundEnabled
+          ? Math.max(0, Math.min(1, this.volume * this.countdownVolume))
+          : 0;
     }
     if (this.fanfareAudioEl) {
       this.fanfareAudioEl.volume = this.enabled && this.fanfareSoundEnabled
@@ -294,6 +368,15 @@ export class StateCeremonyAudio {
     if (!this.enabled || !this.touchSoundEnabled) return;
     this.init();
     if (!this.ctx) return;
+    if (
+      this.soundPreset !== 'minimal' &&
+      this._playSfxBuffer('touch', {
+        volume: this.touchVolume * 0.9,
+        playbackRate: this.soundPreset === 'tech' ? 1.08 : 1.0,
+      })
+    ) {
+      return;
+    }
     try {
       const now = this.ctx.currentTime;
       const level = this.touchVolume;
@@ -337,16 +420,112 @@ export class StateCeremonyAudio {
     }
   }
 
-  playCountdownBeep(num) {
+  startCountdownLoop(durationMs = 5000) {
     if (!this.enabled || !this.countdownSoundEnabled) return;
+    this.stopCountdownLoop();
+
+    if (this.customCountdownAudioUrl) {
+      try {
+        const audio = new Audio(this.customCountdownAudioUrl);
+        audio.loop = true;
+        audio.volume = Math.max(0, Math.min(1, this.volume * this.countdownVolume));
+        this.countdownAudioEl = audio;
+        audio.play().catch(() => {});
+        return;
+      } catch {
+        // Fallback to built-in buildup
+      }
+    }
+
     this.init();
     if (!this.ctx) return;
+
+    const buf = this.sfxBuffers.countdownBuildup;
+    if (buf && this.soundPreset !== 'minimal') {
+      try {
+        const now = this.ctx.currentTime;
+        const bus = this.ctx.createGain();
+        const durSec = Math.max(2, (durationMs || 5000) / 1000);
+        const startVol = Math.max(0.25, this.countdownVolume * 0.55);
+        const endVol = Math.min(1.15, this.countdownVolume * 0.95);
+        bus.gain.setValueAtTime(0.01, now);
+        bus.gain.linearRampToValueAtTime(startVol, now + 0.15);
+        bus.gain.linearRampToValueAtTime(endVol, now + durSec);
+        bus.connect(this.getDestination());
+
+        const src = this.ctx.createBufferSource();
+        src.buffer = buf;
+        src.loop = true;
+        // Align buildup climax with the configured countdown duration
+        const rate = Math.max(0.85, Math.min(1.35, buf.duration / durSec));
+        src.playbackRate.setValueAtTime(rate, now);
+        src.connect(bus);
+        src.start(now);
+
+        this.activeCountdownBus = { bus, src };
+      } catch {
+        // Ignore playback errors
+      }
+    }
+  }
+
+  stopCountdownLoop() {
+    if (this.countdownAudioEl) {
+      this.countdownAudioEl.pause();
+      this.countdownAudioEl.currentTime = 0;
+      this.countdownAudioEl = null;
+    }
+    if (this.activeCountdownBus && this.ctx) {
+      const { bus, src } = this.activeCountdownBus;
+      this.activeCountdownBus = null;
+      try {
+        const now = this.ctx.currentTime;
+        bus.gain.cancelScheduledValues(now);
+        bus.gain.setValueAtTime(bus.gain.value, now);
+        bus.gain.exponentialRampToValueAtTime(0.0001, now + 0.12);
+        setTimeout(() => {
+          try {
+            src.stop();
+            src.disconnect();
+            bus.disconnect();
+          } catch {
+            // ignore already stopped
+          }
+        }, 150);
+      } catch {
+        // ignore
+      }
+    }
+  }
+
+  playCountdownBeep(num) {
+    if (!this.enabled || !this.countdownSoundEnabled) return;
+    // If user uploaded a custom full countdown music track, let it play without overlaying beeps
+    if (this.customCountdownAudioUrl) return;
+    this.init();
+    if (!this.ctx) return;
+    const clampedNum = Math.max(1, Math.min(7, Number(num) || 1));
+    const stepIdx = Math.max(0, 5 - Math.min(5, clampedNum)); // 0 at '5', 4 at '1'
+    const risingRate = 0.94 + stepIdx * 0.08 + (this.soundPreset === 'tech' ? 0.05 : 0);
+
+    if (this.soundPreset !== 'minimal' && (this.sfxBuffers.countdownImpact || this.sfxBuffers.countdown)) {
+      this._playSfxBuffer('countdownImpact', {
+        volume: this.countdownVolume * (0.55 + stepIdx * 0.07),
+        playbackRate: 0.98 + stepIdx * 0.04,
+      });
+
+      this._playSfxBuffer('countdown', {
+        volume: this.countdownVolume * (0.78 + stepIdx * 0.06),
+        playbackRate: risingRate,
+      });
+      return;
+    }
+
     try {
       const now = this.ctx.currentTime;
       const level = this.countdownVolume;
       const dest = this.getDestination();
-      const clampedNum = Math.max(1, Math.min(7, Number(num) || 1));
-      const intensity = 1 + (5 - Math.min(5, clampedNum)) * 0.12;
+      const intensity = 1 + (5 - Math.min(5, clampedNum)) * 0.14;
 
       if (this.soundPreset === 'minimal') {
         const osc = this.ctx.createOscillator();
@@ -568,10 +747,32 @@ export class StateCeremonyAudio {
         return;
       }
     }
+    this.init();
+    if (this.ctx && this.soundPreset !== 'minimal' && this.sfxBuffers.fanfare) {
+      this.stopFanfare();
+      const fanfareBus = this.ctx.createGain();
+      fanfareBus.gain.setValueAtTime(1.0, this.ctx.currentTime);
+      fanfareBus.connect(this.getDestination());
+      this.activeFanfareBus = fanfareBus;
+      if (
+        this._playSfxBuffer('fanfare', {
+          volume: this.fanfareVolume,
+          targetBus: fanfareBus,
+        })
+      ) {
+        return;
+      }
+    }
     this.playSynthFanfare();
   }
 
   stopFanfare() {
+    if (this.countdownAudioEl) {
+      this.countdownAudioEl.volume =
+        this.enabled && this.countdownSoundEnabled
+          ? Math.max(0, Math.min(1, this.volume * this.countdownVolume))
+          : 0;
+    }
     if (this.fanfareAudioEl) {
       this.fanfareAudioEl.pause();
       this.fanfareAudioEl.currentTime = 0;
@@ -600,14 +801,16 @@ export class StateCeremonyAudio {
 
   syncBgMusic(shouldPlay) {
     this.bgDesiredPlaying = Boolean(shouldPlay);
-    if (!shouldPlay || !this.enabled || !this.bgAudioEnabled || !this.customBgAudioUrl) {
+    const effectiveBgUrl = this.customBgAudioUrl || BUILTIN_AUDIO_URLS.bg;
+    if (!shouldPlay || !this.enabled || !this.bgAudioEnabled || !effectiveBgUrl) {
       this.stopBgMusic();
       return;
     }
 
-    if (!this.bgAudioEl || this.bgAudioEl.src !== this.customBgAudioUrl) {
+    if (!this.bgAudioEl || this.bgAudioEl.dataset?.bgUrl !== effectiveBgUrl) {
       this.stopBgMusic();
-      const el = new Audio(this.customBgAudioUrl);
+      const el = new Audio(effectiveBgUrl);
+      el.dataset.bgUrl = effectiveBgUrl;
       el.loop = true;
       el.volume = Math.max(0, Math.min(1, this.volume * this.bgAudioVolume));
       this.bgAudioEl = el;

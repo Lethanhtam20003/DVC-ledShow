@@ -49,6 +49,7 @@ export default function StageApp() {
       bgAudioEnabled: config.bgAudioEnabled,
       bgAudioVolume: config.bgAudioVolume,
       customBgAudioUrl: mediaUrls.customBgAudioUrl,
+      customCountdownAudioUrl: mediaUrls.customCountdownAudioUrl,
       customFanfareAudioUrl: mediaUrls.customFanfareAudioUrl,
     });
   }, [
@@ -64,6 +65,7 @@ export default function StageApp() {
     config.bgAudioEnabled,
     config.bgAudioVolume,
     mediaUrls.customBgAudioUrl,
+    mediaUrls.customCountdownAudioUrl,
     mediaUrls.customFanfareAudioUrl,
   ]);
 
@@ -94,6 +96,7 @@ export default function StageApp() {
 
   const completeActivation = useCallback(() => {
     stopChargeTimer();
+    ceremonyAudio.stopCountdownLoop();
     setProgress(100);
     setFlashActive(true);
     ceremonyAudio.playFanfare();
@@ -115,6 +118,7 @@ export default function StageApp() {
       const totalSecs = Math.round(duration / 1000);
       lastSecRef.current = totalSecs;
       setCountdownSec(totalSecs);
+      ceremonyAudio.startCountdownLoop(duration);
       ceremonyAudio.playCountdownBeep(totalSecs);
       syncRef.current?.post('STAGE_PHASE', { phase: 'charging' });
 
@@ -142,6 +146,7 @@ export default function StageApp() {
 
   const resetStage = useCallback(() => {
     stopChargeTimer();
+    ceremonyAudio.stopCountdownLoop();
     ceremonyAudio.stopFanfare();
     manualLockedRef.current = false;
     setPhase('standby');
@@ -153,6 +158,7 @@ export default function StageApp() {
 
   const previewCelebration = useCallback(() => {
     stopChargeTimer();
+    ceremonyAudio.stopCountdownLoop();
     setFlashActive(true);
     ceremonyAudio.playFanfare();
     setTimeout(() => {

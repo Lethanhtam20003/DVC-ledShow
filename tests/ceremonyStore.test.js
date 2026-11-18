@@ -6,10 +6,15 @@ import {
   STORAGE_KEY,
   applyPatternDefaults,
   createSyncChannel,
+  deleteSavedPreset,
   extractYouTubeId,
   loadConfig,
+  loadSavedPresets,
   normalizeConfig,
+  resetPatternConfig,
   saveConfig,
+  saveNamedPreset,
+  switchPattern,
 } from '../src/shared/ceremonyStore.js';
 import { BUILTIN_3D_MODELS } from '../src/shared/models3d.js';
 
@@ -154,4 +159,76 @@ test('custom3dModelType and custom3dModelId defaults and normalization', () => {
   const loaded = loadConfig();
   assert.equal(loaded.custom3dModelType, 'preset');
   assert.equal(loaded.custom3dModelId, 'crystal-core');
+});
+
+test('switchPattern preserves customized settings per pattern and resetPatternConfig restores defaults', () => {
+  const store = new Map();
+  globalThis.localStorage = {
+    getItem: (k) => (store.has(k) ? store.get(k) : null),
+    setItem: (k, v) => store.set(k, String(v)),
+  };
+
+  const customizedCdsqg = {
+    ...applyPatternDefaults(DEFAULT_CONFIG, 'cdsqg-2026'),
+    eventTitle: 'TIÊU ĐỀ ĐÃ TÙY CHỈNH 10.10',
+    handCount: 9,
+  };
+  saveConfig(customizedCdsqg);
+
+  const switchedToGlobe = switchPattern(customizedCdsqg, 'holo-globe');
+  assert.equal(switchedToGlobe.patternId, 'holo-globe');
+  assert.equal(
+    switchedToGlobe.eventTitle,
+    getPatternById('holo-globe').defaults.eventTitle
+  );
+
+  const switchedBack = switchPattern(switchedToGlobe, 'cdsqg-2026');
+  assert.equal(switchedBack.patternId, 'cdsqg-2026');
+  assert.equal(switchedBack.eventTitle, 'TIÊU ĐỀ ĐÃ TÙY CHỈNH 10.10');
+  assert.equal(switchedBack.handCount, 9);
+
+  const reset = resetPatternConfig(switchedBack, 'cdsqg-2026');
+  assert.equal(reset.patternId, 'cdsqg-2026');
+  assert.equal(
+    reset.eventTitle,
+    getPatternById('cdsqg-2026').defaults.eventTitle
+  );
+  assert.equal(reset.handCount, DEFAULT_CONFIG.handCount);
+});
+
+test('saveNamedPreset, loadSavedPresets, update and deleteSavedPreset manage named setups', () => {
+  const store = new Map();
+  globalThis.localStorage = {
+    getItem: (k) => (store.has(k) ? store.get(k) : null),
+    setItem: (k, v) => store.set(k, String(v)),
+  };
+
+  assert.deepEqual(loadSavedPresets(), []);
+
+  const cfg1 = {
+    ...applyPatternDefaults(DEFAULT_CONFIG, 'cdsqg-2026'),
+    eventTitle: 'PHIÊN KHAI MẠC SÁNG',
+  };
+  const { preset: p1, presets: list1 } = saveNamedPreset({
+    name: 'Kịch bản Sáng 10.10',
+    config: cfg1,
+  });
+  assert.equal(list1.length, 1);
+  assert.equal(p1.name, 'Kịch bản Sáng 10.10');
+  assert.equal(p1.config.eventTitle, 'PHIÊN KHAI MẠC SÁNG');
+
+  // Update existing preset by id
+  const { preset: p1Updated, presets: listAfterUpdate } = saveNamedPreset({
+    id: p1.id,
+    name: 'Kịch bản Sáng 10.10 (Đã sửa)',
+    config: { ...cfg1, handCount: 7 },
+  });
+  assert.equal(listAfterUpdate.length, 1);
+  assert.equal(p1Updated.id, p1.id);
+  assert.equal(p1Updated.name, 'Kịch bản Sáng 10.10 (Đã sửa)');
+  assert.equal(p1Updated.config.handCount, 7);
+
+  const remaining = deleteSavedPreset(p1.id);
+  assert.equal(remaining.length, 0);
+  assert.equal(loadSavedPresets().length, 0);
 });
