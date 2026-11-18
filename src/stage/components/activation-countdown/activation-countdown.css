@@ -1,0 +1,227 @@
+/* ============================================================================
+   ActivationCountdown Cinematic Keyframes
+   - Chromatic Aberration / RGB-Split Glitch
+   - Stage Impact Shake & Supernova Rays
+   - Expanding Shockwave Glow
+   - Infinite Glossy Light Sweep Reflection
+   ============================================================================ */
+
+@keyframes countdown-glitch-jitter {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) skewX(0deg);
+  }
+  12% {
+    transform: translate3d(-4px, 1px, 0) skewX(-2.5deg);
+  }
+  24% {
+    transform: translate3d(5px, -2px, 0) skewX(3deg);
+  }
+  36% {
+    transform: translate3d(-2px, 0, 0) skewX(0deg);
+  }
+  58% {
+    transform: translate3d(4px, 1px, 0) skewX(-2deg);
+  }
+  72% {
+    transform: translate3d(-5px, -1px, 0) skewX(2deg);
+  }
+  84% {
+    transform: translate3d(2px, 0, 0) skewX(0deg);
+  }
+}
+
+@keyframes countdown-glitch-cyan {
+  0%, 100% {
+    transform: translate3d(-4px, 0, 0);
+    clip-path: inset(10% 0 64% 0);
+    opacity: 0.88;
+  }
+  20% {
+    transform: translate3d(-9px, -2px, 0);
+    clip-path: inset(36% 0 26% 0);
+    opacity: 0.98;
+  }
+  45% {
+    transform: translate3d(5px, 2px, 0);
+    clip-path: inset(66% 0 8% 0);
+    opacity: 0.78;
+  }
+  70% {
+    transform: translate3d(-7px, 1px, 0);
+    clip-path: inset(18% 0 46% 0);
+    opacity: 0.92;
+  }
+  88% {
+    transform: translate3d(-3px, -1px, 0);
+    clip-path: inset(50% 0 22% 0);
+    opacity: 0.8;
+  }
+}
+
+@keyframes countdown-glitch-red {
+  0%, 100% {
+    transform: translate3d(4px, 0, 0);
+    clip-path: inset(58% 0 10% 0);
+    opacity: 0.88;
+  }
+  25% {
+    transform: translate3d(9px, 2px, 0);
+    clip-path: inset(14% 0 52% 0);
+    opacity: 0.98;
+  }
+  50% {
+    transform: translate3d(-6px, -1px, 0);
+    clip-path: inset(42% 0 30% 0);
+    opacity: 0.8;
+  }
+  75% {
+    transform: translate3d(7px, -2px, 0);
+    clip-path: inset(72% 0 6% 0);
+    opacity: 0.92;
+  }
+}
+
+@keyframes stage-impact-shake {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  12% {
+    transform: translate3d(-8px, -6px, 0) scale(1.018);
+  }
+  26% {
+    transform: translate3d(8px, 6px, 0) scale(1.012);
+  }
+  40% {
+    transform: translate3d(-6px, 4px, 0) scale(1.008);
+  }
+  56% {
+    transform: translate3d(5px, -3px, 0) scale(1.004);
+  }
+  74% {
+    transform: translate3d(-3px, 2px, 0) scale(1.001);
+  }
+}
+
+@keyframes drum-slow-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes ember-rise {
+  0% {
+    transform: translateY(0) scale(0.6);
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.85;
+  }
+  80% {
+    opacity: 0.65;
+  }
+  100% {
+    transform: translateY(-260px) scale(1.15);
+    opacity: 0;
+  }
+}
+
+@keyframes light-sweep-pass {
+  0% {
+    transform: translateX(-160%) skewX(-24deg);
+  }
+  52%, 100% {
+    transform: translateX(260%) skewX(-24deg);
+  }
+}
+
+@keyframes laser-flow-dash {
+  from {
+    stroke-dashoffset: 120;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.stage-impact-shake {
+  animation: stage-impact-shake 0.52s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.drum-slow-spin {
+  animation: drum-slow-spin 90s linear infinite;
+}
+
+.ember-particle {
+  animation: ember-rise var(--ember-dur, 6s) ease-in-out var(--ember-delay, 0s) infinite;
+}
+
+.glitch-number-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  animation: countdown-glitch-jitter 0.38s steps(2, end) infinite;
+  will-change: transform;
+}
+
+.glitch-layer-cyan {
+  position: absolute;
+  inset: 0;
+  color: #22d3ee;
+  text-shadow: -4px 0 24px rgba(34, 211, 238, 0.95);
+  mix-blend-mode: screen;
+  pointer-events: none;
+  animation: countdown-glitch-cyan 0.3s steps(2, end) infinite;
+}
+
+.glitch-layer-red {
+  position: absolute;
+  inset: 0;
+  color: #fb7185;
+  text-shadow: 4px 0 24px rgba(244, 63, 94, 0.95);
+  mix-blend-mode: screen;
+  pointer-events: none;
+  animation: countdown-glitch-red 0.26s steps(2, end) infinite;
+}
+
+.laser-energy-stream {
+  stroke-dasharray: 28 16;
+  animation: laser-flow-dash 0.4s linear infinite;
+}
+
+.light-sweep-title-box,
+.light-sweep-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.light-sweep-title-box::after,
+.light-sweep-card::after {
+  content: '';
+  position: absolute;
+  top: -35%;
+  left: 0;
+  width: 38%;
+  height: 170%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.1) 25%,
+    rgba(255, 248, 214, 0.62) 50%,
+    rgba(34, 211, 238, 0.22) 72%,
+    transparent 100%
+  );
+  pointer-events: none;
+  animation: light-sweep-pass 3.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) infinite;
+}
+
+.light-sweep-card:nth-child(2)::after {
+  animation-delay: 0.4s;
+}
+
+.light-sweep-card:nth-child(3)::after {
+  animation-delay: 0.8s;
+}

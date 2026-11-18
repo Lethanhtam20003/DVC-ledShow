@@ -198,6 +198,12 @@ export function applyPatternDefaults(config, patternId) {
   return {
     ...config,
     patternId: pattern.id,
+    ...(typeof pattern.defaults.handCount === 'number'
+      ? { handCount: pattern.defaults.handCount }
+      : {}),
+    ...(typeof pattern.defaults.chargeDuration === 'number'
+      ? { chargeDuration: pattern.defaults.chargeDuration }
+      : {}),
     videoBgEnabled:
       pattern.id === 'custom-ceremony' ? Boolean(config.videoBgEnabled) : false,
     eventBadge: pattern.defaults.eventBadge,

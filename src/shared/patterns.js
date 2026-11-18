@@ -1,5 +1,63 @@
 export const PATTERNS = [
   {
+    id: 'logo-spearhead',
+    name: 'Logo Dẫn Đầu Công Phá Công Nghệ Mới',
+    subtitle: 'Three.js 3D • Luồng Sáng & Thế Hệ Mới',
+    badge: 'Thế hệ mới',
+    engineType: 'three-motion',
+    description:
+      'Logo 10.10.2026 dẫn đầu 6 luồng sáng Plasma bứt phá xuyên không gian, công phá vỡ tung 3 tầng rào cản 3D và mở ra kỷ nguyên AI - Dữ liệu - Hạ tầng số.',
+    colors: {
+      primary: '#22d3ee',
+      secondary: '#b91c1c',
+      accent: '#fde047',
+      bgTop: '#081b33',
+      bgBottom: '#020617',
+      particle: '#67e8f9',
+      grid: '#0e7490',
+      bloomStrength: 1.2,
+    },
+    defaults: {
+      handCount: 6,
+      chargeDuration: 6300,
+      eventBadge: '10.10.2026 • NGÀY HỘI CHUYỂN ĐỔI SỐ QUỐC GIA',
+      eventTitle: 'NGHI THỨC KÍCH HOẠT CHUYỂN ĐỔI SỐ',
+      eventSubtitle: 'DẪN ĐẦU CÔNG PHÁ - KIẾN TẠO THẾ HỆ CÔNG NGHỆ MỚI',
+      celebrationTitle: 'KÍCH HOẠT NGÀY HỘI CHUYỂN ĐỔI SỐ 2026',
+      celebrationDesc:
+        'TRÍ TUỆ NHÂN TẠO - DỮ LIỆU SỐNG - HẠ TẦNG HIỆN ĐẠI - PHỤC VỤ NHÂN DÂN',
+    },
+  },
+  {
+    id: 'activation-countdown',
+    name: 'Kích Hoạt Chuyển Đổi Số 2026 (Motion)',
+    subtitle: 'Cinematic LED • Framer Motion & Glitch',
+    badge: 'Mẫu mới',
+    engineType: 'motion',
+    description:
+      'Mẫu trình diễn 5 giai đoạn: 6 bàn tay vàng & tia laser Cyan hội tụ, đếm ngược 3D Pump + RGB Glitch, Shockwave 300vw lắp ghép Logo và 3 Trụ cột Light Sweep.',
+    colors: {
+      primary: '#fbbf24',
+      secondary: '#b91c1c',
+      accent: '#22d3ee',
+      bgTop: '#7f1d1d',
+      bgBottom: '#180204',
+      particle: '#22d3ee',
+      grid: '#0e7490',
+      bloomStrength: 1.0,
+    },
+    defaults: {
+      handCount: 6,
+      chargeDuration: 6000,
+      eventBadge: '10.10.2026 • NGÀY HỘI CHUYỂN ĐỔI SỐ QUỐC GIA',
+      eventTitle: 'NGHI THỨC KÍCH HOẠT CHUYỂN ĐỔI SỐ',
+      eventSubtitle: 'CHÍNH QUYỀN SỐ • KINH TẾ SỐ • XÃ HỘI SỐ',
+      celebrationTitle: 'KÍCH HOẠT NGÀY HỘI CHUYỂN ĐỔI SỐ 2026',
+      celebrationDesc:
+        'CHÍNH QUYỀN SỐ KIẾN TẠO - KINH TẾ SỐ ĐỘT PHÁ - XÃ HỘI SỐ TOÀN DIỆN',
+    },
+  },
+  {
     id: 'cdsqg-2026',
     name: 'Ngày Chuyển Đổi Số Quốc Gia 3D',
     subtitle: 'Bộ Nhận Diện Chính Thức 10.10.2026',
@@ -156,5 +214,10 @@ export const PATTERNS = [
 
 export function getPatternById(id) {
   return PATTERNS.find((p) => p.id === id) || PATTERNS[0];
+}
+
+export function isSelfChoreographedPattern(id) {
+  const pattern = getPatternById(id);
+  return pattern.engineType === 'motion' || pattern.engineType === 'three-motion';
 }
 

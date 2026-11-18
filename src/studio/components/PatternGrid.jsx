@@ -1,8 +1,10 @@
 import React from 'react';
-import { Check, Sparkles, Globe, Building2, Gem, Wand2, SlidersHorizontal, Orbit } from 'lucide-react';
+import { Check, Sparkles, Globe, Building2, Gem, Wand2, SlidersHorizontal, Orbit, Zap, Rocket } from 'lucide-react';
 import { PATTERNS } from '../../shared/patterns';
 
 const PATTERN_ICONS = {
+  'logo-spearhead': Rocket,
+  'activation-countdown': Zap,
   'cdsqg-2026': Orbit,
   'dong-son': Sparkles,
   'holo-globe': Globe,
@@ -91,7 +93,13 @@ export default function PatternGrid({ selectedId, onSelectPattern, onOpenSetup }
                   className="w-3.5 h-3.5 rounded-full border border-white/20"
                   style={{ backgroundColor: pattern.colors.secondary }}
                 />
-                <span className="text-xs text-slate-500 ml-1">WebGL 3D + Bloom</span>
+                <span className="text-xs text-slate-500 ml-1">
+                  {pattern.engineType === 'three-motion'
+                    ? 'Three.js 3D + Motion'
+                    : pattern.engineType === 'motion'
+                      ? 'Framer Motion + SVG'
+                      : 'WebGL 3D + Bloom'}
+                </span>
               </div>
 
               <button
