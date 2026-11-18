@@ -2,8 +2,15 @@ import React, { useEffect, useRef, useState } from 'react';
 import ThreeStage from './ThreeStage';
 import TouchPods from './TouchPods';
 import Celebration from './Celebration';
+import ActivationCountdown from './activation-countdown';
+import LogoSpearheadMotion from './logo-spearhead';
 import { getPatternById } from '../../shared/patterns';
 import { extractYouTubeId, getBuiltinBgVideoById } from '../../shared/ceremonyStore';
+
+const MOTION_PATTERN_COMPONENTS = {
+  'activation-countdown': ActivationCountdown,
+  'logo-spearhead': LogoSpearheadMotion,
+};
 
 function StageContent({
   isPreview = false,
@@ -19,6 +26,9 @@ function StageContent({
   custom3dModelUrl = null,
   onActivateHand,
   onDeactivateHand,
+  onStartSequence,
+  onSequenceComplete,
+  onReset,
   onActivationVideoEnded,
 }) {
   const pattern = getPatternById(config.patternId);
@@ -39,6 +49,31 @@ function StageContent({
     0.9,
     1 - (1 - (config.tintDarkness ?? 0.45)) * (1 - brightnessDim)
   );
+
+  const MotionComponent = MOTION_PATTERN_COMPONENTS[config.patternId];
+  if (MotionComponent) {
+    return (
+      <div className="relative w-full h-full overflow-hidden select-none">
+        <MotionComponent
+          config={config}
+          externalPhase={phase}
+          activeHands={activeHands}
+          isPreview={isPreview}
+          onStartSequence={onStartSequence}
+          onSequenceComplete={onSequenceComplete || onActivationVideoEnded}
+          onActivateHand={onActivateHand}
+          onDeactivateHand={onDeactivateHand}
+          onReset={onReset}
+        />
+        {brightnessDim > 0 && (
+          <div
+            className="absolute inset-0 z-50 pointer-events-none transition-colors duration-500"
+            style={{ backgroundColor: `rgba(0,0,0,${brightnessDim})` }}
+          />
+        )}
+      </div>
+    );
+  }
 
   return (
     <div

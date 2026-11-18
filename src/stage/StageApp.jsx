@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import StageViewport from './components/StageViewport';
 import { ceremonyAudio } from '../shared/audioEngine';
+import { isSelfChoreographedPattern } from '../shared/patterns';
 import {
   getCustom3dModelUrl,
   loadAllCustomMediaUrls,
@@ -109,12 +110,25 @@ export default function StageApp() {
     }, 320);
   }, [stopChargeTimer]);
 
+  const completeMotionSequence = useCallback(() => {
+    stopChargeTimer();
+    setProgress(100);
+    setFlashActive(false);
+    setPhase('celebration');
+    syncRef.current?.post('STAGE_PHASE', { phase: 'celebration' });
+  }, [stopChargeTimer]);
+
   const startCharging = useCallback(
     (isManualTrigger = false) => {
       if (phase !== 'standby') return;
       manualLockedRef.current = isManualTrigger;
       setPhase('charging');
       setProgress(0);
+
+      if (isSelfChoreographedPattern(config.patternId)) {
+        syncRef.current?.post('STAGE_PHASE', { phase: 'charging' });
+        return;
+      }
 
       const duration = config.chargeDuration || 5000;
       const totalSecs = Math.round(duration / 1000);
@@ -143,7 +157,7 @@ export default function StageApp() {
         }
       }, 30);
     },
-    [phase, config.chargeDuration, completeActivation, stopChargeTimer]
+    [phase, config.patternId, config.chargeDuration, completeActivation, stopChargeTimer]
   );
 
   const resetStage = useCallback(() => {
@@ -325,6 +339,9 @@ export default function StageApp() {
       custom3dModelUrl={custom3dModelUrl}
       onActivateHand={handleActivateHand}
       onDeactivateHand={handleDeactivateHand}
+      onStartSequence={() => startCharging(true)}
+      onSequenceComplete={completeMotionSequence}
+      onReset={resetStage}
       onActivationVideoEnded={completeActivation}
     />
   );

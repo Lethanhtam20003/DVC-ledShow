@@ -23,7 +23,7 @@ import {
   Volume2,
 } from 'lucide-react';
 import StageViewport from '../../stage/components/StageViewport';
-import { getPatternById } from '../../shared/patterns';
+import { getPatternById, isSelfChoreographedPattern } from '../../shared/patterns';
 import { BUILTIN_3D_MODELS } from '../../shared/models3d';
 import {
   BUILTIN_BG_VIDEOS,
@@ -219,10 +219,21 @@ export default function SetupWorkspace({
     }, 280);
   }, [stopTimer]);
 
+  const completeMotionDemo = useCallback(() => {
+    stopTimer();
+    setDemoFlash(false);
+    setDemoProgress(100);
+    setDemoPhase('celebration');
+  }, [stopTimer]);
+
   const runDemoCeremony = useCallback(() => {
     stopTimer();
     setDemoPhase('charging');
     setDemoProgress(0);
+
+    if (isSelfChoreographedPattern(config.patternId)) {
+      return;
+    }
 
     // If custom activation video is uploaded, let video's onEnded advance to celebration
     if (mediaUrls.customActivationVideoUrl) {
@@ -253,7 +264,7 @@ export default function SetupWorkspace({
         completeDemo();
       }
     }, 30);
-  }, [config.chargeDuration, mediaUrls.customActivationVideoUrl, stopTimer, completeDemo]);
+  }, [config.patternId, config.chargeDuration, mediaUrls.customActivationVideoUrl, stopTimer, completeDemo]);
 
   const resetDemo = useCallback(() => {
     stopTimer();
@@ -550,6 +561,9 @@ export default function SetupWorkspace({
                 custom3dModelUrl={activeCustom3dModelUrl}
                 onActivateHand={handleDemoHandDown}
                 onDeactivateHand={handleDemoHandUp}
+                onStartSequence={runDemoCeremony}
+                onSequenceComplete={completeMotionDemo}
+                onReset={resetDemo}
                 onActivationVideoEnded={completeDemo}
               />
             </div>

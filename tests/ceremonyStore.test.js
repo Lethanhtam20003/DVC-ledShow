@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { PATTERNS, getPatternById } from '../src/shared/patterns.js';
+import { PATTERNS, getPatternById, isSelfChoreographedPattern } from '../src/shared/patterns.js';
 import {
   BUILTIN_BG_VIDEOS,
   BUILTIN_COUNTDOWN_AUDIO_STYLES,
@@ -21,10 +21,15 @@ import {
 } from '../src/shared/ceremonyStore.js';
 import { BUILTIN_3D_MODELS } from '../src/shared/models3d.js';
 
-test('PATTERNS contains 6 unique stage patterns with required fields', () => {
-  assert.equal(PATTERNS.length, 6);
+test('PATTERNS contains 8 unique stage patterns with required fields', () => {
+  assert.equal(PATTERNS.length, 8);
   const ids = new Set(PATTERNS.map((p) => p.id));
-  assert.equal(ids.size, 6);
+  assert.equal(ids.size, 8);
+  assert.ok(ids.has('activation-countdown'));
+  assert.ok(ids.has('logo-spearhead'));
+  assert.equal(isSelfChoreographedPattern('logo-spearhead'), true);
+  assert.equal(isSelfChoreographedPattern('activation-countdown'), true);
+  assert.equal(isSelfChoreographedPattern('dong-son'), false);
 
   for (const p of PATTERNS) {
     assert.ok(p.name && p.colors?.primary && p.colors?.bgBottom);
@@ -66,6 +71,16 @@ test('applyPatternDefaults updates pattern text while preserving unrelated setti
     next.eventTitle,
     getPatternById('smart-city').defaults.eventTitle
   );
+
+  const motion = applyPatternDefaults(DEFAULT_CONFIG, 'activation-countdown');
+  assert.equal(motion.patternId, 'activation-countdown');
+  assert.equal(motion.handCount, 6);
+  assert.equal(motion.chargeDuration, 6000);
+
+  const spearhead = applyPatternDefaults(DEFAULT_CONFIG, 'logo-spearhead');
+  assert.equal(spearhead.patternId, 'logo-spearhead');
+  assert.equal(spearhead.handCount, 6);
+  assert.equal(spearhead.chargeDuration, 6300);
 });
 
 test('loadConfig migrates legacy blocked YouTube ID and handles invalid JSON', () => {
