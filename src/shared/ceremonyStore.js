@@ -33,6 +33,19 @@ export function getBuiltinBgVideoById(id) {
   return BUILTIN_BG_VIDEOS.find((v) => v.id === id) || BUILTIN_BG_VIDEOS[0];
 }
 
+export const BUILTIN_COUNTDOWN_AUDIO_STYLES = [
+  {
+    id: 'gravity-strike',
+    name: "Gravity's Final Strike",
+    desc: '5 nhịp đập mạnh dần + Tiếng nổ bùng & âm vang',
+  },
+  {
+    id: 'classic',
+    name: 'Trống & Nhịp đếm (5-1)',
+    desc: 'Tiếng trống từng giây + Nhạc Vinh danh',
+  },
+];
+
 export const DEFAULT_CONFIG = {
   patternId: 'dong-son',
   handCount: 5,
@@ -53,6 +66,7 @@ export const DEFAULT_CONFIG = {
   masterVolume: 0.8,
   audioEnabled: true,
   soundPreset: 'ceremony', // 'ceremony' | 'tech' | 'minimal'
+  countdownAudioStyle: 'gravity-strike', // 'gravity-strike' | 'classic'
   touchSoundEnabled: true,
   touchVolume: 0.85,
   countdownSoundEnabled: true,
@@ -110,6 +124,7 @@ export function extractYouTubeId(urlOrId) {
 const VALID_3D_MODEL_TYPES = new Set(['preset', 'uploaded', 'none']);
 const VALID_HAND_ICON_STYLES = new Set(['palm', 'one-finger', 'fingerprint']);
 const VALID_LOCAL_VIDEO_IDS = new Set(BUILTIN_BG_VIDEOS.map((v) => v.id));
+const VALID_COUNTDOWN_AUDIO_STYLES = new Set(BUILTIN_COUNTDOWN_AUDIO_STYLES.map((s) => s.id));
 
 export function normalizeConfig(rawConfig = {}) {
   const merged = { ...DEFAULT_CONFIG, ...(rawConfig && typeof rawConfig === 'object' ? rawConfig : {}) };
@@ -124,6 +139,9 @@ export function normalizeConfig(rawConfig = {}) {
   }
   if (!VALID_LOCAL_VIDEO_IDS.has(merged.localVideoId)) {
     merged.localVideoId = DEFAULT_CONFIG.localVideoId;
+  }
+  if (!VALID_COUNTDOWN_AUDIO_STYLES.has(merged.countdownAudioStyle)) {
+    merged.countdownAudioStyle = DEFAULT_CONFIG.countdownAudioStyle;
   }
   return merged;
 }

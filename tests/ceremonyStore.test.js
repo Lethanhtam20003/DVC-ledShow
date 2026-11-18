@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { PATTERNS, getPatternById } from '../src/shared/patterns.js';
 import {
   BUILTIN_BG_VIDEOS,
+  BUILTIN_COUNTDOWN_AUDIO_STYLES,
   DEFAULT_CONFIG,
   STORAGE_KEY,
   applyPatternDefaults,
@@ -243,4 +244,24 @@ test('BUILTIN_BG_VIDEOS and localVideoId normalization work as expected', () => 
 
   assert.equal(normalizeConfig({ localVideoId: 'hud-cyan' }).localVideoId, 'hud-cyan');
   assert.equal(normalizeConfig({ localVideoId: 'bogus' }).localVideoId, 'trong-dong');
+});
+
+test('BUILTIN_COUNTDOWN_AUDIO_STYLES and countdownAudioStyle normalization work as expected', () => {
+  assert.deepEqual(
+    BUILTIN_COUNTDOWN_AUDIO_STYLES.map((s) => s.id),
+    ['gravity-strike', 'classic']
+  );
+  assert.equal(DEFAULT_CONFIG.countdownAudioStyle, 'gravity-strike');
+  assert.equal(
+    normalizeConfig({ countdownAudioStyle: 'classic' }).countdownAudioStyle,
+    'classic'
+  );
+  assert.equal(
+    normalizeConfig({ countdownAudioStyle: 'gravity-strike' }).countdownAudioStyle,
+    'gravity-strike'
+  );
+  assert.equal(
+    normalizeConfig({ countdownAudioStyle: 'unknown' }).countdownAudioStyle,
+    'gravity-strike'
+  );
 });

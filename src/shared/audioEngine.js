@@ -21,6 +21,7 @@ export class StateCeremonyAudio {
     this.volume = 0.8;
     this.enabled = true;
     this.soundPreset = 'ceremony'; // 'ceremony' | 'tech' | 'minimal'
+    this.countdownAudioStyle = 'gravity-strike'; // 'gravity-strike' | 'classic'
 
     this.touchSoundEnabled = true;
     this.touchVolume = 0.85;
@@ -186,6 +187,9 @@ export class StateCeremonyAudio {
     }
     if (typeof opts.soundPreset === 'string') {
       this.soundPreset = opts.soundPreset;
+    }
+    if (typeof opts.countdownAudioStyle === 'string') {
+      this.countdownAudioStyle = opts.countdownAudioStyle;
     }
     if (typeof opts.touchSoundEnabled === 'boolean') {
       this.touchSoundEnabled = opts.touchSoundEnabled;
@@ -428,11 +432,15 @@ export class StateCeremonyAudio {
     }
   }
 
-  startCountdownLoop(durationMs = 5000) {
+  _usesGravityStrike() {
+    return this.countdownAudioStyle === 'gravity-strike' && this.soundPreset !== 'minimal';
+  }
+
+  startCountdownLoop(durationMs = 5000, { forceGravity = false } = {}) {
     if (!this.enabled || !this.countdownSoundEnabled) return;
     this.stopCountdownLoop();
 
-    if (this.customCountdownAudioUrl) {
+    if (this.customCountdownAudioUrl && !forceGravity) {
       try {
         const audio = new Audio(this.customCountdownAudioUrl);
         audio.loop = true;
@@ -449,7 +457,7 @@ export class StateCeremonyAudio {
     if (!this.ctx) return;
 
     const buf = this.sfxBuffers.countdownBuildup;
-    if (buf && this.soundPreset !== 'minimal') {
+    if (buf && (forceGravity || this._usesGravityStrike())) {
       try {
         const now = this.ctx.currentTime;
         const bus = this.ctx.createGain();
@@ -508,11 +516,11 @@ export class StateCeremonyAudio {
 
   playCountdownBeep(num, { forceBeep = false } = {}) {
     if (!this.enabled || !this.countdownSoundEnabled) return;
-    // Let Gravity_s_Final_Strike buildup or custom countdown music play cleanly without overlaying synthetic beeps
+    // Let Gravity's Final Strike buildup or custom countdown music play cleanly without overlaying synthetic beeps
     if (
       !forceBeep &&
       (this.customCountdownAudioUrl ||
-        (this.soundPreset !== 'minimal' && this.sfxBuffers.countdownBuildup))
+        (this._usesGravityStrike() && this.sfxBuffers.countdownBuildup))
     ) {
       return;
     }
@@ -744,14 +752,18 @@ export class StateCeremonyAudio {
     }
   }
 
-  playCountdownBoom() {
+  playCountdownBoom({ forceGravity = false } = {}) {
     if (!this.enabled) return;
-    if (this.customFanfareAudioUrl) {
+    if (this.customFanfareAudioUrl && !forceGravity) {
       this.playFanfare();
       return;
     }
     this.init();
-    if (this.ctx && this.soundPreset !== 'minimal' && this.sfxBuffers.countdownBoom) {
+    if (
+      this.ctx &&
+      (forceGravity || this._usesGravityStrike()) &&
+      this.sfxBuffers.countdownBoom
+    ) {
       this.stopFanfare();
       const fanfareBus = this.ctx.createGain();
       fanfareBus.gain.setValueAtTime(1.0, this.ctx.currentTime);

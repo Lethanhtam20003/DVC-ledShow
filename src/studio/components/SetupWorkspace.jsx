@@ -25,7 +25,11 @@ import {
 import StageViewport from '../../stage/components/StageViewport';
 import { getPatternById } from '../../shared/patterns';
 import { BUILTIN_3D_MODELS } from '../../shared/models3d';
-import { BUILTIN_BG_VIDEOS, extractYouTubeId } from '../../shared/ceremonyStore';
+import {
+  BUILTIN_BG_VIDEOS,
+  BUILTIN_COUNTDOWN_AUDIO_STYLES,
+  extractYouTubeId,
+} from '../../shared/ceremonyStore';
 import { ceremonyAudio } from '../../shared/audioEngine';
 import {
   deleteCustom3dModel,
@@ -87,6 +91,7 @@ export default function SetupWorkspace({
   const [model3dError, setModel3dError] = useState('');
 
   const timerRef = useRef(null);
+  const previewAudioTimerRef = useRef(null);
   const lastSecRef = useRef(5);
   const custom3dUrlsRef = useRef([]);
 
@@ -96,6 +101,31 @@ export default function SetupWorkspace({
       timerRef.current = null;
     }
   }, []);
+
+  const stopAudioPreview = useCallback(() => {
+    if (previewAudioTimerRef.current) {
+      clearTimeout(previewAudioTimerRef.current);
+      previewAudioTimerRef.current = null;
+    }
+    ceremonyAudio.stopCountdownLoop();
+  }, []);
+
+  const previewCountdownStyle = useCallback(
+    (styleId = config.countdownAudioStyle || 'gravity-strike') => {
+      stopAudioPreview();
+      if (styleId === 'gravity-strike') {
+        ceremonyAudio.startCountdownLoop(5000, { forceGravity: true });
+        previewAudioTimerRef.current = setTimeout(() => {
+          ceremonyAudio.stopCountdownLoop();
+          ceremonyAudio.playCountdownBoom({ forceGravity: true });
+          previewAudioTimerRef.current = null;
+        }, 5000);
+        return;
+      }
+      ceremonyAudio.playCountdownBeep(3, { forceBeep: true });
+    },
+    [config.countdownAudioStyle, stopAudioPreview]
+  );
 
   const refreshMedia = useCallback(async () => {
     const urls = await loadAllCustomMediaUrls();
@@ -133,6 +163,7 @@ export default function SetupWorkspace({
       volume: config.masterVolume,
       enabled: config.audioEnabled,
       soundPreset: config.soundPreset,
+      countdownAudioStyle: config.countdownAudioStyle,
       touchSoundEnabled: config.touchSoundEnabled,
       touchVolume: config.touchVolume,
       countdownSoundEnabled: config.countdownSoundEnabled,
@@ -149,6 +180,7 @@ export default function SetupWorkspace({
     config.masterVolume,
     config.audioEnabled,
     config.soundPreset,
+    config.countdownAudioStyle,
     config.touchSoundEnabled,
     config.touchVolume,
     config.countdownSoundEnabled,
@@ -165,16 +197,16 @@ export default function SetupWorkspace({
   useEffect(() => {
     if (!open) {
       stopTimer();
-      ceremonyAudio.stopCountdownLoop();
+      stopAudioPreview();
       setDemoPhase('standby');
       setDemoProgress(0);
       setDemoHands(new Set());
     }
     return () => {
       stopTimer();
-      ceremonyAudio.stopCountdownLoop();
+      stopAudioPreview();
     };
-  }, [open, stopTimer]);
+  }, [open, stopTimer, stopAudioPreview]);
 
   const completeDemo = useCallback(() => {
     stopTimer();
@@ -1777,6 +1809,64 @@ export default function SetupWorkspace({
                       ))}
                     </div>
                   </div>
+
+                  <div>
+                    <div className="flex items-center justify-between gap-2 mb-1.5">
+                      <label className="block text-xs font-semibold text-slate-300">
+                        Âm thanh đếm ngược & Bùng nổ
+                      </label>
+                      {mediaUrls.customCountdownAudioUrl && (
+                        <span className="text-[10px] text-amber-300">
+                          Đang ưu tiên file riêng
+                        </span>
+                      )}
+                    </div>
+                    <div className="space-y-1.5">
+                      {BUILTIN_COUNTDOWN_AUDIO_STYLES.map((styleOpt) => {
+                        const selected =
+                          (config.countdownAudioStyle || 'gravity-strike') === styleOpt.id;
+                        return (
+                          <div
+                            key={styleOpt.id}
+                            className={`flex items-center justify-between gap-2 p-2.5 rounded-xl border transition-colors ${selected
+                              ? 'bg-amber-400/10 border-amber-400'
+                              : 'bg-slate-950 border-slate-800 hover:border-slate-700'
+                              }`}
+                          >
+                            <button
+                              type="button"
+                              onClick={() => onChange({ countdownAudioStyle: styleOpt.id })}
+                              className="flex-1 text-left cursor-pointer"
+                            >
+                              <div className="flex items-center gap-2">
+                                <span
+                                  className={`text-xs font-bold ${selected ? 'text-amber-300' : 'text-slate-200'
+                                    }`}
+                                >
+                                  {styleOpt.name}
+                                </span>
+                                {selected && (
+                                  <span className="px-1.5 py-0.5 rounded bg-amber-400 text-slate-950 text-[10px] font-bold">
+                                    Đang chọn
+                                  </span>
+                                )}
+                              </div>
+                              <div className="text-[11px] text-slate-400 mt-0.5">
+                                {styleOpt.desc}
+                              </div>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => previewCountdownStyle(styleOpt.id)}
+                              className="shrink-0 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-slate-800 hover:bg-slate-700 text-amber-300 cursor-pointer"
+                            >
+                              Nghe thử
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
 
                 <div className="p-3.5 rounded-2xl bg-slate-900/70 border border-slate-800 space-y-3.5">
@@ -1832,8 +1922,16 @@ export default function SetupWorkspace({
                       <button
                         type="button"
                         onClick={() => {
-                          ceremonyAudio.startCountdownLoop(config.chargeDuration || 5000);
-                          setTimeout(() => ceremonyAudio.stopCountdownLoop(), 3200);
+                          if (mediaUrls.customCountdownAudioUrl) {
+                            stopAudioPreview();
+                            ceremonyAudio.startCountdownLoop(config.chargeDuration || 5000);
+                            previewAudioTimerRef.current = setTimeout(() => {
+                              ceremonyAudio.stopCountdownLoop();
+                              previewAudioTimerRef.current = null;
+                            }, 3500);
+                            return;
+                          }
+                          previewCountdownStyle(config.countdownAudioStyle || 'gravity-strike');
                         }}
                         className="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-800 hover:bg-slate-700 text-amber-300 cursor-pointer"
                       >
