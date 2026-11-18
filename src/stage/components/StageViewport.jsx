@@ -3,9 +3,7 @@ import ThreeStage from './ThreeStage';
 import TouchPods from './TouchPods';
 import Celebration from './Celebration';
 import { getPatternById } from '../../shared/patterns';
-import { extractYouTubeId } from '../../shared/ceremonyStore';
-
-const DEFAULT_LOCAL_VIDEO_SRC = './bg-trong-dong-loop.mp4';
+import { extractYouTubeId, getBuiltinBgVideoById } from '../../shared/ceremonyStore';
 
 function StageContent({
   isPreview = false,
@@ -30,7 +28,8 @@ function StageContent({
       : config.screenBrightness;
 
   const ytId = extractYouTubeId(config.youtubeVideoId);
-  const bgVideoSrc = customBgVideoUrl || DEFAULT_LOCAL_VIDEO_SRC;
+  const builtinBgVideo = getBuiltinBgVideoById(config.localVideoId);
+  const bgVideoSrc = customBgVideoUrl || builtinBgVideo.src;
   const isPlayingActivationVideo = Boolean(
     phase === 'charging' && customActivationVideoUrl
   );

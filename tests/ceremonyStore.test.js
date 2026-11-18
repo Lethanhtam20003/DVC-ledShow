@@ -2,12 +2,14 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { PATTERNS, getPatternById } from '../src/shared/patterns.js';
 import {
+  BUILTIN_BG_VIDEOS,
   DEFAULT_CONFIG,
   STORAGE_KEY,
   applyPatternDefaults,
   createSyncChannel,
   deleteSavedPreset,
   extractYouTubeId,
+  getBuiltinBgVideoById,
   loadConfig,
   loadSavedPresets,
   normalizeConfig,
@@ -231,4 +233,14 @@ test('saveNamedPreset, loadSavedPresets, update and deleteSavedPreset manage nam
   const remaining = deleteSavedPreset(p1.id);
   assert.equal(remaining.length, 0);
   assert.equal(loadSavedPresets().length, 0);
+});
+
+test('BUILTIN_BG_VIDEOS and localVideoId normalization work as expected', () => {
+  assert.equal(BUILTIN_BG_VIDEOS.length, 3);
+  assert.equal(getBuiltinBgVideoById('hud-cyan').src, './bg-hud-xanh-cyan.mp4');
+  assert.equal(getBuiltinBgVideoById('hud-gold').src, './bg-hud-vang-3d.mp4');
+  assert.equal(getBuiltinBgVideoById('unknown').id, 'trong-dong');
+
+  assert.equal(normalizeConfig({ localVideoId: 'hud-cyan' }).localVideoId, 'hud-cyan');
+  assert.equal(normalizeConfig({ localVideoId: 'bogus' }).localVideoId, 'trong-dong');
 });

@@ -3,6 +3,7 @@ const BUILTIN_AUDIO_URLS = {
   countdown: './audio/countdown-beep.mp3',
   countdownImpact: './audio/countdown-impact.mp3',
   countdownBuildup: './audio/countdown-buildup.mp3',
+  countdownBoom: './audio/countdown-boom.mp3',
   fanfare: './audio/celebration-fanfare.mp3',
   bg: './audio/bg-ceremony.mp3',
 };
@@ -46,6 +47,7 @@ export class StateCeremonyAudio {
       countdown: null,
       countdownImpact: null,
       countdownBuildup: null,
+      countdownBoom: null,
       fanfare: null,
     };
     this._sfxLoadingStarted = false;
@@ -133,8 +135,14 @@ export class StateCeremonyAudio {
   _preloadBuiltinSfx() {
     if (this._sfxLoadingStarted || !this.ctx || typeof fetch !== 'function') return;
     this._sfxLoadingStarted = true;
-    ['touch', 'countdown', 'countdownImpact', 'countdownBuildup', 'fanfare'].forEach(
-      async (key) => {
+    [
+      'touch',
+      'countdown',
+      'countdownImpact',
+      'countdownBuildup',
+      'countdownBoom',
+      'fanfare',
+    ].forEach(async (key) => {
       try {
         const res = await fetch(BUILTIN_AUDIO_URLS[key]);
         if (!res.ok) return;
@@ -446,18 +454,18 @@ export class StateCeremonyAudio {
         const now = this.ctx.currentTime;
         const bus = this.ctx.createGain();
         const durSec = Math.max(2, (durationMs || 5000) / 1000);
-        const startVol = Math.max(0.25, this.countdownVolume * 0.55);
-        const endVol = Math.min(1.15, this.countdownVolume * 0.95);
+        const startVol = Math.max(0.3, this.countdownVolume * 0.8);
+        const endVol = Math.min(1.2, this.countdownVolume * 1.05);
         bus.gain.setValueAtTime(0.01, now);
-        bus.gain.linearRampToValueAtTime(startVol, now + 0.15);
+        bus.gain.linearRampToValueAtTime(startVol, now + 0.04);
         bus.gain.linearRampToValueAtTime(endVol, now + durSec);
         bus.connect(this.getDestination());
 
         const src = this.ctx.createBufferSource();
         src.buffer = buf;
-        src.loop = true;
-        // Align buildup climax with the configured countdown duration
-        const rate = Math.max(0.85, Math.min(1.35, buf.duration / durSec));
+        src.loop = false;
+        // Align the 5 rising beats of Gravity_s_Final_Strike with the exact countdown duration
+        const rate = Math.max(0.7, Math.min(1.75, buf.duration / durSec));
         src.playbackRate.setValueAtTime(rate, now);
         src.connect(bus);
         src.start(now);
@@ -498,10 +506,16 @@ export class StateCeremonyAudio {
     }
   }
 
-  playCountdownBeep(num) {
+  playCountdownBeep(num, { forceBeep = false } = {}) {
     if (!this.enabled || !this.countdownSoundEnabled) return;
-    // If user uploaded a custom full countdown music track, let it play without overlaying beeps
-    if (this.customCountdownAudioUrl) return;
+    // Let Gravity_s_Final_Strike buildup or custom countdown music play cleanly without overlaying synthetic beeps
+    if (
+      !forceBeep &&
+      (this.customCountdownAudioUrl ||
+        (this.soundPreset !== 'minimal' && this.sfxBuffers.countdownBuildup))
+    ) {
+      return;
+    }
     this.init();
     if (!this.ctx) return;
     const clampedNum = Math.max(1, Math.min(7, Number(num) || 1));
@@ -728,6 +742,31 @@ export class StateCeremonyAudio {
     } catch (e) {
       console.warn('Audio error:', e);
     }
+  }
+
+  playCountdownBoom() {
+    if (!this.enabled) return;
+    if (this.customFanfareAudioUrl) {
+      this.playFanfare();
+      return;
+    }
+    this.init();
+    if (this.ctx && this.soundPreset !== 'minimal' && this.sfxBuffers.countdownBoom) {
+      this.stopFanfare();
+      const fanfareBus = this.ctx.createGain();
+      fanfareBus.gain.setValueAtTime(1.0, this.ctx.currentTime);
+      fanfareBus.connect(this.getDestination());
+      this.activeFanfareBus = fanfareBus;
+      if (
+        this._playSfxBuffer('countdownBoom', {
+          volume: Math.max(this.countdownVolume, this.fanfareVolume),
+          targetBus: fanfareBus,
+        })
+      ) {
+        return;
+      }
+    }
+    this.playFanfare();
   }
 
   playFanfare() {

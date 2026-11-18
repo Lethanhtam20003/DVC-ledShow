@@ -99,7 +99,7 @@ export default function StageApp() {
     ceremonyAudio.stopCountdownLoop();
     setProgress(100);
     setFlashActive(true);
-    ceremonyAudio.playFanfare();
+    ceremonyAudio.playCountdownBoom();
     setTimeout(() => {
       setPhase('celebration');
       setFlashActive(false);

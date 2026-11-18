@@ -5,6 +5,34 @@ export const PATTERN_CONFIGS_KEY = 'cham_tay_pattern_configs_v1';
 export const SAVED_PRESETS_KEY = 'cham_tay_saved_presets_v1';
 export const CHANNEL_NAME = 'cham_tay_stage_sync_v2';
 
+export const BUILTIN_BG_VIDEOS = [
+  {
+    id: 'trong-dong',
+    name: 'Trống Đồng & Bản Đồ VN',
+    subtitle: 'Họa tiết Đông Sơn đỏ vàng (10s)',
+    src: './bg-trong-dong-loop.mp4',
+    accentColor: '#f5c542',
+  },
+  {
+    id: 'hud-cyan',
+    name: 'Mạch HUD Công Nghệ Xanh',
+    subtitle: 'Giao diện số Cyan hiện đại (6.5s)',
+    src: './bg-hud-xanh-cyan.mp4',
+    accentColor: '#38bdf8',
+  },
+  {
+    id: 'hud-gold',
+    name: 'Mạch HUD Công Nghệ Vàng 3D',
+    subtitle: 'Mạch vi xử lý 3D Vàng Cam (6.5s)',
+    src: './bg-hud-vang-3d.mp4',
+    accentColor: '#fbbf24',
+  },
+];
+
+export function getBuiltinBgVideoById(id) {
+  return BUILTIN_BG_VIDEOS.find((v) => v.id === id) || BUILTIN_BG_VIDEOS[0];
+}
+
 export const DEFAULT_CONFIG = {
   patternId: 'dong-son',
   handCount: 5,
@@ -16,6 +44,7 @@ export const DEFAULT_CONFIG = {
   coreScale: 1.0,
   videoBgEnabled: false,
   videoSource: 'local', // 'local' (offline MP4) | 'youtube' | 'none'
+  localVideoId: 'trong-dong', // 'trong-dong' | 'hud-cyan' | 'hud-gold'
   youtubeVideoId: 'sbDz4hoZWCk',
   videoOpacity: 0.55,
   tintDarkness: 0.45,
@@ -80,6 +109,7 @@ export function extractYouTubeId(urlOrId) {
 
 const VALID_3D_MODEL_TYPES = new Set(['preset', 'uploaded', 'none']);
 const VALID_HAND_ICON_STYLES = new Set(['palm', 'one-finger', 'fingerprint']);
+const VALID_LOCAL_VIDEO_IDS = new Set(BUILTIN_BG_VIDEOS.map((v) => v.id));
 
 export function normalizeConfig(rawConfig = {}) {
   const merged = { ...DEFAULT_CONFIG, ...(rawConfig && typeof rawConfig === 'object' ? rawConfig : {}) };
@@ -91,6 +121,9 @@ export function normalizeConfig(rawConfig = {}) {
   }
   if (!VALID_HAND_ICON_STYLES.has(merged.handIconStyle)) {
     merged.handIconStyle = DEFAULT_CONFIG.handIconStyle;
+  }
+  if (!VALID_LOCAL_VIDEO_IDS.has(merged.localVideoId)) {
+    merged.localVideoId = DEFAULT_CONFIG.localVideoId;
   }
   return merged;
 }
